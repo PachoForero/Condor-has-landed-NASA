@@ -29,10 +29,19 @@ title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
 button_width, button_height = max(180, int(WIDTH * 0.15)), max(50, int(HEIGHT * 0.08))
 button1_rect = pygame.Rect(WIDTH//2 - button_width - 20, HEIGHT//2, button_width, button_height)
 button2_rect = pygame.Rect(WIDTH//2 + 20, HEIGHT//2, button_width, button_height)
+# Botón de salir debajo de los botones horizontales
+exit_button_width, exit_button_height = button_width, button_height
+exit_button_rect = pygame.Rect((WIDTH - exit_button_width) // 2, HEIGHT//2 + button_height + 20, exit_button_width, exit_button_height)
 
 def draw_button(rect, text):
     pygame.draw.rect(screen, GRAY, rect, border_radius=10)
     txt = font_button.render(text, True, BLACK)
+    txt_rect = txt.get_rect(center=rect.center)
+    screen.blit(txt, txt_rect)
+
+def draw_exit_button(rect, text):
+    pygame.draw.rect(screen, (200, 0, 0), rect, border_radius=10)
+    txt = font_button.render(text, True, WHITE)
     txt_rect = txt.get_rect(center=rect.center)
     screen.blit(txt, txt_rect)
 
@@ -42,6 +51,7 @@ def main():
         screen.blit(title_text, title_rect)
         draw_button(button1_rect, "Abrir archivo 1")
         draw_button(button2_rect, "Abrir archivo 2")
+        draw_exit_button(exit_button_rect, "Salir")
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -53,6 +63,13 @@ def main():
                     datos_screen(screen)
                 elif button2_rect.collidepoint(event.pos):
                     subprocess.Popen(['python', 'archivo2.py'])
+                elif exit_button_rect.collidepoint(event.pos):
+                    pygame.quit()
+                    sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
 
         pygame.display.flip()
 
