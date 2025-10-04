@@ -78,7 +78,7 @@ def main():
         pygame.draw.rect(screen, (250, 250, 250), content_rect)
 
         # Llamar a draw de la página si existe
-        m = mods[current]
+        m = mods[current]   
         if m and hasattr(m, "draw"):
             m.draw(screen, state)
         else:
