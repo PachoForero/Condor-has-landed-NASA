@@ -4,24 +4,29 @@ import subprocess
 from ui.Datos import datos_screen
 
 # Configuración de la ventana
-WIDTH, HEIGHT = 600, 400
+DEFAULT_WIDTH, DEFAULT_HEIGHT = 600, 400
 WHITE = (255, 255, 255)
 BLUE = (30, 144, 255)
 GRAY = (200, 200, 200)
 BLACK = (0, 0, 0)
 
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+# Iniciar en pantalla completa usando la resolución actual del display
+info = pygame.display.Info()
+screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
 pygame.display.set_caption("Condor has landed - NASA")
+# Actualizar dimensiones reales
+WIDTH, HEIGHT = screen.get_size()
+
 font_title = pygame.font.SysFont(None, 48)
 font_button = pygame.font.SysFont(None, 36)
 
-# Título
+# Título (calcular después de conocer WIDTH/HEIGHT)
 title_text = font_title.render("Condor has landed - NASA", True, BLUE)
 title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
 
-# Botones
-button_width, button_height = 180, 50
+# Botones (tamaño relativo para pantallas grandes)
+button_width, button_height = max(180, int(WIDTH * 0.15)), max(50, int(HEIGHT * 0.08))
 button1_rect = pygame.Rect(WIDTH//2 - button_width - 20, HEIGHT//2, button_width, button_height)
 button2_rect = pygame.Rect(WIDTH//2 + 20, HEIGHT//2, button_width, button_height)
 
