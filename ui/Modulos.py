@@ -203,6 +203,16 @@ def toggle_fullscreen():
 
 def main():
     screen = create_window()
+    modulos_screen(screen)
+
+
+def modulos_screen(screen):
+    """Run the Modulos app using an existing pygame `screen`.
+
+    This version does not call pygame.quit() or sys.exit() when the user
+    returns; instead it returns control to the caller (like `datos_screen`).
+    Press ESC to go back to the caller. Closing the window will quit the app.
+    """
     clock = pygame.time.Clock()
     world = Mundo(screen)
 
@@ -210,7 +220,9 @@ def main():
     while running:
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
-                running = False
+                # Propagate full quit to exit the whole program (consistent with datos_screen)
+                pygame.quit()
+                sys.exit()
             elif e.type == pygame.VIDEORESIZE:
                 # Recalcular centro al redimensionar
                 world.screen = pygame.display.get_surface()
@@ -218,6 +230,7 @@ def main():
                 world.refresh_dots()
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE:
+                    # Regresar al llamador en vez de cerrar toda la aplicación
                     running = False
                 elif e.key == pygame.K_F11:
                     toggle_fullscreen()
@@ -240,8 +253,8 @@ def main():
         pygame.display.flip()
         clock.tick(FPS)
 
-    pygame.quit()
-    sys.exit()
+    # simplemente retornar control al llamador (no pygame.quit())
+    return
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,9 @@
 import pygame
 import sys
 import subprocess
+import os
 from ui.Datos import datos_screen
+from ui.Modulos import modulos_screen
 
 # Configuración de la ventana
 DEFAULT_WIDTH, DEFAULT_HEIGHT = 1920, 1080
@@ -72,7 +74,8 @@ def main():
                     # Open the Datos form in the same window
                     datos_screen(screen)
                 elif button2_rect.collidepoint(event.pos):
-                    subprocess.Popen(['python', 'archivo2.py'])
+                    # Abrir la pantalla de Módulos en la misma ventana
+                    modulos_screen(screen)
                 elif exit_button_rect.collidepoint(event.pos):
                     pygame.quit()
                     sys.exit()
