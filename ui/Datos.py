@@ -1,11 +1,13 @@
 import pygame
 import sys
 
-WIDTH, HEIGHT = 600, 400
 WHITE = (255, 255, 255)
 BLUE = (30, 144, 255)
 GRAY = (200, 200, 200)
 BLACK = (0, 0, 0)
+
+# Defaults for standalone execution
+DEFAULT_WIDTH, DEFAULT_HEIGHT = 600, 400
 
 
 class InputBox:
@@ -56,8 +58,9 @@ def datos_screen(screen):
     font_label = pygame.font.SysFont(None, 26)
     font_input = pygame.font.SysFont(None, 24)
 
+    sw, sh = screen.get_size()
     title_text = font_title.render("Datos - Responde las preguntas", True, BLUE)
-    title_rect = title_text.get_rect(center=(WIDTH//2, 40))
+    title_rect = title_text.get_rect(center=(sw//2, int(sh*0.08)))
 
     questions = [
         "1) Nombre:",
@@ -66,16 +69,26 @@ def datos_screen(screen):
         "4) Comentarios:",
     ]
 
+    # Form dimensions (centered)
+    form_w = min(600, int(sw * 0.6))
+    form_h = int(sh * 0.6)
+    form_x = (sw - form_w) // 2
+    form_y = int(sh * 0.15)
+
     input_boxes = []
-    start_y = 90
-    gap = 60
+    start_y = form_y + 60
+    gap = max(60, int(form_h * 0.12))
+    input_w = int(form_w * 0.65)
+    label_x = form_x + int(form_w * 0.05)
+    input_x = form_x + int(form_w * 0.3)
     for i in range(len(questions)):
-        rect = (200, start_y + i*gap, 280, 32)
+        rect = (input_x, start_y + i*gap, input_w, 32)
         input_boxes.append(InputBox(rect, font_input))
 
-    # Buttons
-    submit_rect = pygame.Rect(WIDTH//2 - 90, HEIGHT - 70, 80, 36)
-    back_rect = pygame.Rect(WIDTH//2 + 10, HEIGHT - 70, 80, 36)
+    # Buttons centered below the form
+    btn_w, btn_h = 100, 40
+    submit_rect = pygame.Rect(sw//2 - btn_w - 10, form_y + form_h - 50, btn_w, btn_h)
+    back_rect = pygame.Rect(sw//2 + 10, form_y + form_h - 50, btn_w, btn_h)
 
     running = True
     while running:
@@ -97,9 +110,12 @@ def datos_screen(screen):
         screen.blit(title_text, title_rect)
 
         # Draw questions and inputs
+        # Optional: draw form background (subtle)
+        pygame.draw.rect(screen, (245, 245, 245), (form_x, form_y, form_w, form_h), border_radius=8)
+
         for i, q in enumerate(questions):
             label = font_label.render(q, True, BLACK)
-            screen.blit(label, (40, 95 + i*gap))
+            screen.blit(label, (label_x, start_y + i*gap + 4))
             input_boxes[i].update()
             input_boxes[i].draw(screen)
 
@@ -117,5 +133,5 @@ def datos_screen(screen):
 
 if __name__ == '__main__':
     pygame.init()
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    screen = pygame.display.set_mode((DEFAULT_WIDTH, DEFAULT_HEIGHT))
     datos_screen(screen)
