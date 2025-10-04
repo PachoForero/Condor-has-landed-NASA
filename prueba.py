@@ -3,10 +3,14 @@ import sys
 
 pygame.init()
 
-# Configuración
-WIDTH, HEIGHT = 500, 400
+# Configuración adaptativa
+info = pygame.display.Info()
+WIDTH = int(info.current_w * 0.9)
+HEIGHT = int(info.current_h * 0.9)
+
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("App con botones y campos de texto")
+
 
 FONT = pygame.font.Font(None, 32)
 COLOR_BG = (240, 240, 240)
