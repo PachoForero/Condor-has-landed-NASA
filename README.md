@@ -1,2 +1,2 @@
 # Condor-has-landed-NASA
-Para el presente proyecto
+Con esta herramienta se podran simular las diferentes configuraciones 
