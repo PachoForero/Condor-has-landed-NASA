@@ -61,8 +61,8 @@ def main():
     while True:
         screen.fill(WHITE)
         screen.blit(title_text, title_rect)
-        draw_button(button1_rect, "Abrir archivo 1")
-        draw_button(button2_rect, "Abrir archivo 2")
+        draw_button(button1_rect, "Simular habitat")
+        draw_button(button2_rect, "Ver habitat")
         draw_exit_button(exit_button_rect, "Salir")
 
         for event in pygame.event.get():
