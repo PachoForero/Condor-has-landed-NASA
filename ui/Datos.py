@@ -7,7 +7,7 @@ GRAY = (200, 200, 200)
 BLACK = (0, 0, 0)
 
 # Defaults for standalone execution
-DEFAULT_WIDTH, DEFAULT_HEIGHT = 600, 400
+DEFAULT_WIDTH, DEFAULT_HEIGHT = 1920, 1080
 
 
 class InputBox:

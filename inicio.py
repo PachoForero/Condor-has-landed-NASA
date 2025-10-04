@@ -4,7 +4,7 @@ import subprocess
 from ui.Datos import datos_screen
 
 # Configuración de la ventana
-DEFAULT_WIDTH, DEFAULT_HEIGHT = 600, 400
+DEFAULT_WIDTH, DEFAULT_HEIGHT = 1920, 1080
 WHITE = (255, 255, 255)
 BLUE = (30, 144, 255)
 GRAY = (200, 200, 200)
