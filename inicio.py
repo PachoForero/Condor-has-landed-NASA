@@ -13,7 +13,17 @@ BLACK = (0, 0, 0)
 pygame.init()
 # Iniciar en pantalla completa usando la resolución actual del display
 info = pygame.display.Info()
-screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
+# Try to open fullscreen without changing the display resolution.
+# Prefer FULLSCREEN_DESKTOP (if available) or FULLSCREEN|SCALED, else fallback to FULLSCREEN.
+flags = 0
+if hasattr(pygame, 'FULLSCREEN_DESKTOP'):
+    flags = pygame.FULLSCREEN_DESKTOP
+elif hasattr(pygame, 'SCALED'):
+    flags = pygame.FULLSCREEN | pygame.SCALED
+else:
+    flags = pygame.FULLSCREEN
+
+screen = pygame.display.set_mode((info.current_w, info.current_h), flags)
 pygame.display.set_caption("Condor has landed - NASA")
 # Actualizar dimensiones reales
 WIDTH, HEIGHT = screen.get_size()
