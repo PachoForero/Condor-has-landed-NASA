@@ -216,6 +216,15 @@ def modulos_screen(screen):
     clock = pygame.time.Clock()
     world = Mundo(screen)
 
+    # Botón volver (tamaño relativo)
+    sw, sh = screen.get_size()
+    btn_w, btn_h = max(100, int(sw * 0.12)), max(36, int(sh * 0.06))
+    back_rect = pygame.Rect(sw - btn_w - 20, sh - btn_h - 20, btn_w, btn_h)
+
+    # Fuentes para título/contador y botones
+    font_title = pygame.font.SysFont(None, 32)
+    font_button = pygame.font.SysFont(None, 26)
+
     running = True
     while running:
         for e in pygame.event.get():
@@ -249,7 +258,25 @@ def modulos_screen(screen):
                 else:
                     world.select_or_toggle(mouse)
 
+                # Comprobar si clic en botón Volver
+                if back_rect.collidepoint(mouse):
+                    running = False
+
         world.draw()
+
+        # Dibujar contador superior
+        sw, sh = screen.get_size()
+        count = len(world.modulos)
+        txt = f'Módulos instalados: {count}'
+        txt_surf = font_title.render(txt, True, PALETTE['blanco'])
+        txt_rect = txt_surf.get_rect(center=(sw//2, 20 + txt_surf.get_height()//2))
+        screen.blit(txt_surf, txt_rect)
+
+        # Dibujar botón Volver en la esquina inferior derecha
+        pygame.draw.rect(screen, PALETTE['borde'], back_rect, border_radius=8)
+        txt_back = font_button.render('Volver', True, PALETTE['blanco'])
+        screen.blit(txt_back, txt_back.get_rect(center=back_rect.center))
+
         pygame.display.flip()
         clock.tick(FPS)
 
