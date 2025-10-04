@@ -3,7 +3,7 @@ import math
 import pygame
 
 # -------------------- Config --------------------
-APP_NAME = "Hábitat Hexagonal"
+APP_NAME = "Hábitat Hexagonal — Pan, Zoom y UI"
 PALETTE = {
     "fondo": (20, 20, 24),
     "borde": (40, 40, 48),
@@ -12,24 +12,28 @@ PALETTE = {
     "verde": (30, 200, 90),
     "rojo": (220, 60, 60),
     "blanco": (240, 240, 240),
+    "btn_back": (70, 75, 90),
+    "btn_save": (60, 140, 110),
+    "ui_panel": (28, 28, 34),
+    "ui_border": (90, 90, 100),
 }
-HEX_SIZE = 45          # radio del hexágono (vértice al centro)
-DOT_R = 9              # radio de los puntos verde/rojo
-LINE_W = 2             # grosor de bordes
+HEX_SIZE = 45      # tamaño en coordenadas de mundo (no pantalla)
+DOT_R = 9          # radio de puntos en pixeles de pantalla
+LINE_W = 2
 FPS = 60
 
 # Axial neighbors (pointy-top)
 NEI = [(1,0),(1,-1),(0,-1),(-1,0),(-1,1),(0,1)]
 SQRT3 = math.sqrt(3.0)
 
-# -------------------- Geometría --------------------
-def axial_to_pixel(q, r, origin):
+# -------------------- Geometría mundo --------------------
+def axial_to_world(q, r):
     x = HEX_SIZE * SQRT3 * (q + r/2)
     y = HEX_SIZE * 1.5 * r
-    return (origin[0] + x, origin[1] + y)
+    return (x, y)
 
-def hex_points(center):
-    cx, cy = center
+def hex_points_world(center_w):
+    cx, cy = center_w
     pts = []
     for i in range(6):
         ang = math.radians(60 * i - 30)  # pointy-top
@@ -38,7 +42,6 @@ def hex_points(center):
     return pts
 
 def point_in_polygon(pt, poly):
-    # Ray casting
     x, y = pt
     inside = False
     n = len(poly)
@@ -51,9 +54,56 @@ def point_in_polygon(pt, poly):
                 inside = not inside
     return inside
 
-def dist2(a, b):
-    dx = a[0]-b[0]; dy = a[1]-b[1]
-    return dx*dx + dy*dy
+# -------------------- Cámara --------------------
+class Camera:
+    def __init__(self, screen):
+        self.screen = screen
+        self.zoom = 1.0
+        self.min_zoom = 0.3
+        self.max_zoom = 3.0
+        self.pos = (0.0, 0.0)  # centro de la pantalla en coords mundo
+        self._dragging = False
+        self._last_mouse = (0, 0)
+
+    def set_screen(self, screen):
+        self.screen = screen
+
+    @property
+    def sw(self): return self.screen.get_width()
+    @property
+    def sh(self): return self.screen.get_height()
+
+    def world_to_screen(self, p):
+        return ((p[0] - self.pos[0]) * self.zoom + self.sw * 0.5,
+                (p[1] - self.pos[1]) * self.zoom + self.sh * 0.5)
+
+    def screen_to_world(self, s):
+        return ((s[0] - self.sw * 0.5) / self.zoom + self.pos[0],
+                (s[1] - self.sh * 0.5) / self.zoom + self.pos[1])
+
+    def apply_poly(self, poly_world):
+        return [self.world_to_screen(p) for p in poly_world]
+
+    def start_drag(self, mouse_pos):
+        self._dragging = True
+        self._last_mouse = mouse_pos
+
+    def stop_drag(self):
+        self._dragging = False
+
+    def drag_update(self, mouse_pos):
+        if not self._dragging: return
+        dx = mouse_pos[0] - self._last_mouse[0]
+        dy = mouse_pos[1] - self._last_mouse[1]
+        self.pos = (self.pos[0] - dx / self.zoom, self.pos[1] - dy / self.zoom)
+        self._last_mouse = mouse_pos
+
+    def zoom_at(self, mouse_screen, zoom_factor):
+        before = self.screen_to_world(mouse_screen)
+        self.zoom = max(self.min_zoom, min(self.max_zoom, self.zoom * zoom_factor))
+        after = self.screen_to_world(mouse_screen)
+        self.pos = (self.pos[0] + (before[0] - after[0]),
+                    self.pos[1] + (before[1] - after[1]))
 
 # -------------------- Clase Módulo --------------------
 class Modulo:
@@ -63,9 +113,7 @@ class Modulo:
         self.r = r
         self.style = style  # 0 o 1
 
-    def axial(self):
-        return (self.q, self.r)
-
+    def axial(self): return (self.q, self.r)
     def color(self):
         return PALETTE["estilo_a"] if self.style == 0 else PALETTE["estilo_b"]
 
@@ -74,114 +122,106 @@ class Modulo:
         for dq, dr in NEI:
             yield (q + dq, r + dr)
 
-# -------------------- Estado --------------------
+# -------------------- Mundo --------------------
 class Mundo:
-    def __init__(self, screen):
-        self.screen = screen
-        self.center = (screen.get_width()//2, screen.get_height()//2)
-        self.modulos = {}  # (q,r) -> Modulo
+    def __init__(self, camera):
+        self.cam = camera
+        self.modulos = {}              # (q,r) -> Modulo
         self.base_ax = (0, 0)
         self.selected = None
-        self.candidate_dots = []  # [(axial, pos_pix)]
-        self.red_dot = None       # (pos_pix)
-        self.style_next = 1       # alterna estilos al crear
+        self.green_dots_screen = []    # [(axial, (sx,sy))]
+        self.red_dot_screen = None
+        self.style_next = 1
 
-        # Crear módulo base
-        base = Modulo(0, 0, style=0)
-        self.modulos[(0,0)] = base
+        # base
+        self.modulos[(0,0)] = Modulo(0, 0, style=0)
 
-    # ---- Conversión y formas ----
-    def center_of(self, axial):
-        return axial_to_pixel(axial[0], axial[1], self.center)
+    # centros y polígonos en mundo
+    def center_world_of(self, axial):
+        return axial_to_world(axial[0], axial[1])
 
-    def polygon_of(self, axial):
-        return hex_points(self.center_of(axial))
+    def poly_world_of(self, axial):
+        return hex_points_world(self.center_world_of(axial))
 
-    # ---- Picking ----
-    def pick_modulo(self, mouse):
-        for ax, m in self.modulos.items():
-            poly = self.polygon_of(ax)
-            if point_in_polygon(mouse, poly):
+    # picking
+    def pick_modulo(self, mouse_screen):
+        mouse_world = self.cam.screen_to_world(mouse_screen)
+        for ax in self.modulos:
+            poly_w = self.poly_world_of(ax)
+            if point_in_polygon(mouse_world, poly_w):
                 return ax
         return None
 
-    # ---- Dots ----
+    # UI dots
     def refresh_dots(self):
-        self.candidate_dots.clear()
-        self.red_dot = None
+        self.green_dots_screen.clear()
+        self.red_dot_screen = None
         if self.selected is None:
             return
-        ax = self.selected
-        # Punto rojo sobre el centro del módulo seleccionado
-        self.red_dot = self.center_of(ax)
+        c_w = self.center_world_of(self.selected)
+        self.red_dot_screen = self.cam.world_to_screen(c_w)
 
-        # Verdes en lados vacíos
-        c0 = self.center_of(ax)
-        for nb in Modulo(*ax).neighbors_axial():
+        for nb in Modulo(*self.selected).neighbors_axial():
             if nb not in self.modulos:
-                c1 = self.center_of(nb)
-                mid = ((c0[0] + c1[0]) * 0.5, (c0[1] + c1[1]) * 0.5)
-                self.candidate_dots.append((nb, mid))
+                c1_w = self.center_world_of(nb)
+                mid_w = ((c_w[0] + c1_w[0]) * 0.5, (c_w[1] + c1_w[1]) * 0.5)
+                self.green_dots_screen.append((nb, self.cam.world_to_screen(mid_w)))
 
-    # ---- Acciones ----
-    def select_or_toggle(self, mouse):
-        ax = self.pick_modulo(mouse)
-        if ax is None:
-            # clic vacío deselecciona
-            self.selected = None
-            self.refresh_dots()
-            return
-        self.selected = ax
+    # detectar clic en dot verde sin crear aún
+    def green_hit(self, mouse_screen):
+        r2 = DOT_R * DOT_R
+        for nb, pos_s in self.green_dots_screen:
+            dx = mouse_screen[0] - pos_s[0]
+            dy = mouse_screen[1] - pos_s[1]
+            if dx*dx + dy*dy <= r2:
+                return nb, pos_s
+        return None
+
+    # colocar con estilo elegido
+    def place_with_style(self, axial, style):
+        if axial not in self.modulos:
+            self.modulos[axial] = Modulo(axial[0], axial[1], style=style)
+        self.selected = axial
         self.refresh_dots()
 
-    def try_place_from_green(self, mouse):
-        r2 = DOT_R * DOT_R
-        for nb, pos in self.candidate_dots:
-            if dist2(mouse, pos) <= r2:
-                # crear módulo si libre
-                if nb not in self.modulos:
-                    self.modulos[nb] = Modulo(nb[0], nb[1], style=self.style_next)
-                    self.style_next ^= 1
-                self.selected = nb
-                self.refresh_dots()
-                return True
-        return False
-
-    def try_delete_from_red(self, mouse):
-        if self.selected is None or self.red_dot is None:
+    def try_delete_from_red(self, mouse_screen):
+        if self.selected is None or self.red_dot_screen is None:
             return False
-        # no borrar el base
         if self.selected == self.base_ax:
             return False
-        if dist2(mouse, self.red_dot) <= DOT_R * DOT_R:
-            # borrar
+        dx = mouse_screen[0] - self.red_dot_screen[0]
+        dy = mouse_screen[1] - self.red_dot_screen[1]
+        if dx*dx + dy*dy <= DOT_R * DOT_R:
             del self.modulos[self.selected]
             self.selected = None
             self.refresh_dots()
             return True
         return False
 
-    # ---- Render ----
-    def draw(self):
-        surf = self.screen
-        surf.fill(PALETTE["fondo"])
+    def select_or_clear(self, mouse_screen):
+        ax = self.pick_modulo(mouse_screen)
+        self.selected = ax
+        self.refresh_dots()
 
-        # Dibujar módulos
-        for ax, m in self.modulos.items():
-            poly = self.polygon_of(ax)
-            pygame.draw.polygon(surf, m.color(), poly)
-            pygame.draw.polygon(surf, PALETTE["borde"], poly, LINE_W)
+    # render
+    def draw(self, screen):
+        screen.fill(PALETTE["fondo"])
 
-        # Dots si hay selección
+        for ax, mod in self.modulos.items():
+            poly_w = self.poly_world_of(ax)
+            poly_s = self.cam.apply_poly(poly_w)
+            pygame.draw.polygon(screen, mod.color(), poly_s)
+            pygame.draw.polygon(screen, PALETTE["borde"], poly_s, LINE_W)
+
         if self.selected is not None:
-            # verdes
-            for _, pos in self.candidate_dots:
-                pygame.draw.circle(surf, PALETTE["verde"], (int(pos[0]), int(pos[1])), DOT_R)
-                pygame.draw.circle(surf, PALETTE["blanco"], (int(pos[0]), int(pos[1])), DOT_R, 2)
-            # rojo
-            if self.selected != self.base_ax and self.red_dot is not None:
-                pygame.draw.circle(surf, PALETTE["rojo"], (int(self.red_dot[0]), int(self.red_dot[1])), DOT_R)
-                pygame.draw.circle(surf, PALETTE["blanco"], (int(self.red_dot[0]), int(self.red_dot[1])), DOT_R, 2)
+            for _, pos_s in self.green_dots_screen:
+                pygame.draw.circle(screen, PALETTE["verde"], (int(pos_s[0]), int(pos_s[1])), DOT_R)
+                pygame.draw.circle(screen, PALETTE["blanco"], (int(pos_s[0]), int(pos_s[1])), DOT_R, 2)
+
+            if self.selected != self.base_ax and self.red_dot_screen is not None:
+                rx, ry = self.red_dot_screen
+                pygame.draw.circle(screen, PALETTE["rojo"], (int(rx), int(ry)), DOT_R)
+                pygame.draw.circle(screen, PALETTE["blanco"], (int(rx), int(ry)), DOT_R, 2)
 
 # -------------------- App --------------------
 def create_window():
@@ -189,12 +229,12 @@ def create_window():
     pygame.display.set_caption(APP_NAME)
     info = pygame.display.Info()
     desk_w, desk_h = info.current_w, info.current_h
-    # Ventana 90% centrada; F11 para fullscreen
     pygame.display.set_mode((int(desk_w*0.9), int(desk_h*0.9)), pygame.RESIZABLE)
     return pygame.display.get_surface()
 
 def toggle_fullscreen():
-    flags = pygame.display.get_surface().get_flags()
+    surf = pygame.display.get_surface()
+    flags = surf.get_flags()
     info = pygame.display.Info()
     if flags & pygame.FULLSCREEN:
         pygame.display.set_mode((int(info.current_w*0.9), int(info.current_h*0.9)), pygame.RESIZABLE)
@@ -205,82 +245,183 @@ def main():
     screen = create_window()
     modulos_screen(screen)
 
-
 def modulos_screen(screen):
-    """Run the Modulos app using an existing pygame `screen`.
-
-    This version does not call pygame.quit() or sys.exit() when the user
-    returns; instead it returns control to the caller (like `datos_screen`).
-    Press ESC to go back to the caller. Closing the window will quit the app.
-    """
     clock = pygame.time.Clock()
-    world = Mundo(screen)
+    cam = Camera(screen)
+    world = Mundo(cam)
 
-    # Botón volver (tamaño relativo)
+    # HUD
     sw, sh = screen.get_size()
-    btn_w, btn_h = max(100, int(sw * 0.12)), max(36, int(sh * 0.06))
-    back_rect = pygame.Rect(sw - btn_w - 20, sh - btn_h - 20, btn_w, btn_h)
+    btn_h = max(36, int(sh * 0.06))
+    pad = 20
+    gap = 12
+    btn_w = max(120, int(sw * 0.14))
+    back_rect = pygame.Rect(sw - btn_w - pad, sh - btn_h - pad, btn_w, btn_h)
+    save_rect = pygame.Rect(back_rect.left - gap - btn_w, sh - btn_h - pad, btn_w, btn_h)
 
-    # Fuentes para título/contador y botones
     font_title = pygame.font.SysFont(None, 32)
     font_button = pygame.font.SysFont(None, 26)
+
+    # Estado selector de material
+    selecting_style = False
+    pending_ax = None
+    selector_rect = None
+    mat1_rect = None
+    mat2_rect = None
+
+    def open_selector(anchor_screen_pos):
+        nonlocal selecting_style, selector_rect, mat1_rect, mat2_rect
+        selecting_style = True
+        w, h = 180, 90
+        ax, ay = int(anchor_screen_pos[0]), int(anchor_screen_pos[1])
+        # Evitar que se salga por el borde
+        x = min(max(10, ax - w//2), screen.get_width() - w - 10)
+        y = min(max(10, ay - h - 14), screen.get_height() - h - 10)
+        selector_rect = pygame.Rect(x, y, w, h)
+        # Dos botones
+        bw, bh = (w - 3*10)//2, h - 20 - 10  # padding: 10
+        mat1_rect = pygame.Rect(x + 10, y + 10, bw, bh)
+        mat2_rect = pygame.Rect(x + 20 + bw, y + 10, bw, bh)
+
+    def close_selector():
+        nonlocal selecting_style, pending_ax
+        selecting_style = False
+        pending_ax = None
 
     running = True
     while running:
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
-                # Propagate full quit to exit the whole program (consistent with datos_screen)
                 pygame.quit()
                 sys.exit()
+
             elif e.type == pygame.VIDEORESIZE:
-                # Recalcular centro al redimensionar
-                world.screen = pygame.display.get_surface()
-                world.center = (world.screen.get_width()//2, world.screen.get_height()//2)
+                screen = pygame.display.get_surface()
+                cam.set_screen(screen)
+                sw, sh = screen.get_size()
+                btn_h = max(36, int(sh * 0.06))
+                btn_w = max(120, int(sw * 0.14))
+                back_rect = pygame.Rect(sw - btn_w - pad, sh - btn_h - pad, btn_w, btn_h)
+                save_rect = pygame.Rect(back_rect.left - gap - btn_w, sh - btn_h - pad, btn_w, btn_h)
                 world.refresh_dots()
+                if selecting_style:
+                    # reposicionar selector al centro inferior si cambia el tamaño
+                    open_selector((selector_rect.centerx, selector_rect.top))
+
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE:
-                    # Regresar al llamador en vez de cerrar toda la aplicación
-                    running = False
+                    if selecting_style:
+                        close_selector()
+                    else:
+                        running = False
                 elif e.key == pygame.K_F11:
                     toggle_fullscreen()
-                    world.screen = pygame.display.get_surface()
-                    world.center = (world.screen.get_width()//2, world.screen.get_height()//2)
+                    cam.set_screen(pygame.display.get_surface())
+                    sw, sh = cam.sw, cam.sh
+                    btn_h = max(36, int(sh * 0.06))
+                    btn_w = max(120, int(sw * 0.14))
+                    back_rect = pygame.Rect(sw - btn_w - pad, sh - btn_h - pad, btn_w, btn_h)
+                    save_rect = pygame.Rect(back_rect.left - gap - btn_w, sh - btn_h - pad, btn_w, btn_h)
                     world.refresh_dots()
-            elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                elif e.key == pygame.K_r and world.selected is not None:
+                    world.modulos[world.selected].style ^= 1
+
+            elif e.type == pygame.MOUSEWHEEL:
+                if not selecting_style:
+                    if e.y > 0:
+                        cam.zoom_at(pygame.mouse.get_pos(), 1.1)
+                    elif e.y < 0:
+                        cam.zoom_at(pygame.mouse.get_pos(), 1/1.1)
+                    world.refresh_dots()
+
+            elif e.type == pygame.MOUSEBUTTONDOWN:
                 mouse = pygame.mouse.get_pos()
-                # 1) borrar si clic en rojo
-                if world.try_delete_from_red(mouse):
-                    pass
-                # 2) crear si clic en verde
-                elif world.try_place_from_green(mouse):
-                    pass
-                # 3) seleccionar si clic en módulo o vacío
-                else:
-                    world.select_or_toggle(mouse)
+                if e.button == 3 and not selecting_style:
+                    cam.start_drag(mouse)
 
-                # Comprobar si clic en botón Volver
-                if back_rect.collidepoint(mouse):
-                    running = False
+                elif e.button == 1:
+                    # Primero: si selector está abierto, procesarlo
+                    if selecting_style:
+                        if mat1_rect.collidepoint(mouse):
+                            world.place_with_style(pending_ax, style=0)
+                            close_selector()
+                        elif mat2_rect.collidepoint(mouse):
+                            world.place_with_style(pending_ax, style=1)
+                            close_selector()
+                        elif not selector_rect.collidepoint(mouse):
+                            # clic fuera cierra sin colocar
+                            close_selector()
+                        # no seguir propagando si estaba el selector
+                        continue
 
-        world.draw()
+                    # Botones HUD
+                    if back_rect.collidepoint(mouse):
+                        running = False
+                        continue
+                    if save_rect.collidepoint(mouse):
+                        # Placeholder de guardado
+                        # No implementado aún
+                        print("[INFO] Guardar: pendiente de implementar.")
+                        continue
 
-        # Dibujar contador superior
+                    # Interacción con mundo
+                    if world.try_delete_from_red(mouse):
+                        pass
+                    else:
+                        hit = world.green_hit(mouse)
+                        if hit:
+                            pending_ax, anchor = hit
+                            open_selector(anchor)
+                        else:
+                            world.select_or_clear(mouse)
+
+            elif e.type == pygame.MOUSEBUTTONUP:
+                if e.button == 3:
+                    cam.stop_drag()
+
+            elif e.type == pygame.MOUSEMOTION:
+                if pygame.mouse.get_pressed(num_buttons=3)[2] and not selecting_style:
+                    cam.drag_update(pygame.mouse.get_pos())
+
+        # Dibujo mundo
+        world.draw(screen)
+
+        # HUD
         sw, sh = screen.get_size()
         count = len(world.modulos)
-        txt = f'Módulos instalados: {count}'
-        txt_surf = font_title.render(txt, True, PALETTE['blanco'])
-        txt_rect = txt_surf.get_rect(center=(sw//2, 20 + txt_surf.get_height()//2))
-        screen.blit(txt_surf, txt_rect)
+        title = f"Módulos: {count}"
+        title_surf = font_title.render(title, True, PALETTE["blanco"])
+        title_rect = title_surf.get_rect(center=(sw//2, 20 + title_surf.get_height()//2))
+        screen.blit(title_surf, title_rect)
 
-        # Dibujar botón Volver en la esquina inferior derecha
-        pygame.draw.rect(screen, PALETTE['borde'], back_rect, border_radius=8)
+        # Botón Guardar
+        pygame.draw.rect(screen, PALETTE['btn_save'], save_rect, border_radius=8)
+        txt_save = font_button.render('Guardar', True, PALETTE['blanco'])
+        screen.blit(txt_save, txt_save.get_rect(center=save_rect.center))
+
+        # Botón Volver
+        pygame.draw.rect(screen, PALETTE['btn_back'], back_rect, border_radius=8)
         txt_back = font_button.render('Volver', True, PALETTE['blanco'])
         screen.blit(txt_back, txt_back.get_rect(center=back_rect.center))
+
+        # Selector de material
+        if selecting_style and selector_rect:
+            pygame.draw.rect(screen, PALETTE["ui_panel"], selector_rect, border_radius=10)
+            pygame.draw.rect(screen, PALETTE["ui_border"], selector_rect, 2, border_radius=10)
+
+            # Botón Material 1
+            pygame.draw.rect(screen, PALETTE["estilo_a"], mat1_rect, border_radius=8)
+            m1 = font_button.render("Material 1", True, PALETTE["blanco"])
+            screen.blit(m1, m1.get_rect(center=mat1_rect.center))
+
+            # Botón Material 2
+            pygame.draw.rect(screen, PALETTE["estilo_b"], mat2_rect, border_radius=8)
+            m2 = font_button.render("Material 2", True, PALETTE["blanco"])
+            screen.blit(m2, m2.get_rect(center=mat2_rect.center))
 
         pygame.display.flip()
         clock.tick(FPS)
 
-    # simplemente retornar control al llamador (no pygame.quit())
     return
 
 if __name__ == "__main__":
