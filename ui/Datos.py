@@ -63,10 +63,10 @@ def datos_screen(screen):
     title_rect = title_text.get_rect(center=(sw//2, int(sh*0.08)))
 
     questions = [
-        "1) Nombre:",
-        "2) Edad:",
-        "3) Ocupación:",
-        "4) Comentarios:",
+        "1) N° de personas:",
+        "2) Ubicación de la misión:",
+        "3) Duración (meses):",
+        "4) N° de módulos:",
     ]
 
     # Form dimensions (centered)
