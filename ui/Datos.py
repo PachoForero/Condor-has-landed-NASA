@@ -82,7 +82,8 @@ def datos_screen(screen):
             bg_image = pygame.image.load(img_path).convert()
         except Exception:
             bg_image = None
-    font_title = pygame.font.SysFont(None, 40)
+    # Increase title font size by ~30% (40 -> 52)
+    font_title = pygame.font.SysFont(None, 52)
     font_label = pygame.font.SysFont(None, 26)
     font_input = pygame.font.SysFont(None, 24)
 
@@ -109,6 +110,8 @@ def datos_screen(screen):
     condor_raw = None
     condor_hover_raw = None
     condor2_raw = None
+    condor3_raw = None
+    condor4_raw = None
     try:
         condor_raw = pygame.image.load(os.path.join(base_path, 'Condor.png')).convert_alpha()
     except Exception:
@@ -130,7 +133,21 @@ def datos_screen(screen):
             condor2_raw = pygame.image.load(os.path.join(base_path, '..', 'Condor2.png')).convert_alpha()
         except Exception:
             condor2_raw = None
-    title_text = font_title.render("Data - Answer the questions", True, TITLE_COLOR)
+    try:
+        condor3_raw = pygame.image.load(os.path.join(base_path, 'Condor3.png')).convert_alpha()
+    except Exception:
+        try:
+            condor3_raw = pygame.image.load(os.path.join(base_path, '..', 'Condor3.png')).convert_alpha()
+        except Exception:
+            condor3_raw = None
+    try:
+        condor4_raw = pygame.image.load(os.path.join(base_path, 'Condor4.png')).convert_alpha()
+    except Exception:
+        try:
+            condor4_raw = pygame.image.load(os.path.join(base_path, '..', 'Condor4.png')).convert_alpha()
+        except Exception:
+            condor4_raw = None
+    title_text = font_title.render("Habitat Information", True, TEXT_COLOR)
     title_rect = title_text.get_rect(center=(sw//2, int(sh*0.08)))
 
     questions = [
@@ -192,6 +209,8 @@ def datos_screen(screen):
     condor_image = None
     condor_hover_image = None
     condor2_image = None
+    condor3_image = None
+    condor4_image = None
     condor_pos = (10, sh - 10)  # placeholder, will adjust by height
     if condor_raw:
         try:
@@ -245,6 +264,43 @@ def datos_screen(screen):
                 condor2_image = pygame.transform.scale(condor2_raw, (target_w, scale_h))
         except Exception:
             condor2_image = condor2_raw
+
+    # Scale condor3/condor4 to match base condor size
+    if condor3_raw:
+        try:
+            if condor_image:
+                target_w = condor_image.get_width()
+            elif condor_hover_image:
+                target_w = condor_hover_image.get_width()
+            else:
+                target_w = min(max(120, int(sw * 0.18)), 400)
+            target_w = int(min(target_w, 800))
+            rw, rh = condor3_raw.get_size()
+            scale_h = int(rh * (target_w / rw))
+            try:
+                condor3_image = pygame.transform.smoothscale(condor3_raw, (target_w, scale_h))
+            except Exception:
+                condor3_image = pygame.transform.scale(condor3_raw, (target_w, scale_h))
+        except Exception:
+            condor3_image = condor3_raw
+
+    if condor4_raw:
+        try:
+            if condor_image:
+                target_w = condor_image.get_width()
+            elif condor_hover_image:
+                target_w = condor_hover_image.get_width()
+            else:
+                target_w = min(max(120, int(sw * 0.18)), 400)
+            target_w = int(min(target_w, 800))
+            rw, rh = condor4_raw.get_size()
+            scale_h = int(rh * (target_w / rw))
+            try:
+                condor4_image = pygame.transform.smoothscale(condor4_raw, (target_w, scale_h))
+            except Exception:
+                condor4_image = pygame.transform.scale(condor4_raw, (target_w, scale_h))
+        except Exception:
+            condor4_image = condor4_raw
 
     # Compute a shared anchor position so all condor variants align
     try:
@@ -395,9 +451,13 @@ def datos_screen(screen):
         current_condor = None
         try:
             mouse_pos = pygame.mouse.get_pos()
-            # Priority: input box hover -> condor1 (hover), else location button -> condor2, else base condor
+            # Priority: input box hover -> condor1/3/4, else location button -> condor2, else base condor
             if 0 in input_boxes and input_boxes[0].rect.collidepoint(mouse_pos):
                 current_condor = condor_hover_image or condor_image
+            elif 2 in input_boxes and input_boxes[2].rect.collidepoint(mouse_pos):
+                current_condor = condor3_image or condor_hover_image or condor_image
+            elif 3 in input_boxes and input_boxes[3].rect.collidepoint(mouse_pos):
+                current_condor = condor4_image or condor_hover_image or condor_image
             elif location_rect.collidepoint(mouse_pos):
                 current_condor = condor2_image or condor_hover_image or condor_image
             else:
