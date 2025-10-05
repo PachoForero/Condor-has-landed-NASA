@@ -120,3 +120,34 @@ peso de modulo estandar solo estructura y domo inflable:
 Masa total (optimizada) ≈ 5.58 + 6.23 + 0.18 = 12.0 t (≈12 toneladas).
 
 Interpretación alternativa: con paredes más delgadas y mayor uso de tejidos/compósitos (Nextel/Kevlar), la masa total baja a ~12 t — mucho más razonable para un módulo pequeño. Sigue siendo robusto pero menos penalizado por metal.
+
+#### lista de masas por area
+
+- Reparto de volumen (base = 60.2 m³)
+
+  - Exercise 16% | Social 10% | Hygiene 7% | Logistics 25% | Galley 12% | Medical/Command 10% | Private (central) 20%.
+
+Exercise — 16% → 9.632 m³
+
+Social / Comedor — 10% → 6.020 m³
+
+Hygiene / Waste — 7% → 4.214 m³
+
+Logistics / Maintenance / EVA — 25% → 15.050 m³
+
+Galley / Meal Prep — 12% → 7.224 m³
+
+Medical / Command — 10% → 6.020 m³
+
+Private (mini-hex central) — 20% → 12.040 m³
+
+## entonces
+- Ejercicio (sector periférico) — ≈ 500 kg — 9.632 m³
+  - ARED / resistive device (frame + actuators) — 220 kg (versión completa)
+  - Treadmill con mounts — 110 kg
+  - Cycle ergometer — 60 kg
+  - Arnés/sensores y anclajes — 40 kg
+  - Racks/protecciones — 70 kg
+- Social / Comedor / Misión (mesa + AV) — ≈ 230 kg — 6.020 m³
+  - Equipos: mesa plegable + fijaciones, pantalla/proyector, equipo AV, estantería con utensilios, panel de control local.
+
