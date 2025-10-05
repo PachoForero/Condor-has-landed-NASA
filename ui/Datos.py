@@ -25,6 +25,8 @@ class InputBox:
         self.font = font
         self.txt_surface = font.render(text, True, TEXT_COLOR)
         self.active = False
+        # By default allow any characters; can be set externally to restrict to digits only
+        self.digits_only = False
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -41,9 +43,18 @@ class InputBox:
             elif event.key == pygame.K_BACKSPACE:
                 self.text = self.text[:-1]
             else:
-                # Basic character input (ignore non-printables)
+                # Basic character input (ignore non-printables). If digits_only flag is set,
+                # accept only numeric characters (0-9).
                 if len(event.unicode) > 0:
-                    self.text += event.unicode
+                    ch = event.unicode
+                    if self.digits_only:
+                        if ch.isdigit():
+                            self.text += ch
+                        else:
+                            # ignore non-digit input
+                            pass
+                    else:
+                        self.text += ch
             self.txt_surface = self.font.render(self.text, True, TEXT_COLOR)
 
     def update(self):
@@ -94,14 +105,14 @@ def datos_screen(screen):
         crop_y = (new_h - sh) // 2
         bg_image = bg_image.subsurface((crop_x, crop_y, sw, sh)).copy()
         bg_image = pygame.transform.flip(bg_image, True, False)  # horizontal flip (mirror)
-    title_text = font_title.render("Datos - Responde las preguntas", True, TITLE_COLOR)
+    title_text = font_title.render("Data - Answer the questions", True, TITLE_COLOR)
     title_rect = title_text.get_rect(center=(sw//2, int(sh*0.08)))
 
     questions = [
-        "1) N° de personas:",
-        "2) Ubicación de la misión:",
-        "3) Duración (meses):",
-        "4) N° de módulos:",
+        "1) Number of people",
+        "2) Mission location:",
+        "3) Duration (months):",
+        "4) Number of modules:",
     ]
 
     # Form dimensions (centered)
@@ -112,8 +123,9 @@ def datos_screen(screen):
 
     # Create input boxes for all questions except the second (index 1)
     input_boxes = {}
-    start_y = form_y + 60
-    gap = max(60, int(form_h * 0.12))
+    # Move inputs slightly further down to reduce overlap with labels
+    start_y = form_y + 80
+    gap = max(70, int(form_h * 0.12))
     input_w = int(form_w * 0.65)
     label_x = form_x + int(form_w * 0.05)
     input_x = form_x + int(form_w * 0.3)
@@ -121,8 +133,11 @@ def datos_screen(screen):
         if i == 1:
             # Skip creating an input for the second question (location)
             continue
-        rect = (input_x, start_y + i*gap, input_w, 32)
-        input_boxes[i] = InputBox(rect, font_input)
+    rect = (input_x, start_y + i*gap, input_w, 32)
+    input_boxes[i] = InputBox(rect, font_input)
+    # Make numeric-only for questions that expect numbers (indices 0,2,3)
+    if i in (0, 2, 3):
+        input_boxes[i].digits_only = True
 
     # Buttons: Enviar y Volver permanecen centrados debajo del formulario.
     # El botón 'Location Y' se reubica debajo del primer cuadro de texto
@@ -134,15 +149,15 @@ def datos_screen(screen):
     submit_rect = pygame.Rect(start_x, form_y + form_h - 50, btn_w, btn_h)
     back_rect = pygame.Rect(start_x + (btn_w + spacing), form_y + form_h - 50, btn_w, btn_h)
 
-    # Colocar Location a la derecha de la etiqueta de la segunda pregunta
-    # y alineado verticalmente con esa etiqueta (index 1).
+    # Place Location button to the right of the second question label
+    # and vertically aligned with that label (index 1).
     # Calculamos la posición x usando el ancho renderizado de la etiqueta
     # para que quede justo a su derecha con un pequeño margen.
     label_for_location = font_label.render(questions[1], True, TEXT_COLOR)
     label_width = label_for_location.get_width()
     small_margin = 12
     location_x = label_x + label_width + small_margin
-    # Alinear verticalmente con la etiqueta de la segunda pregunta
+    # Vertically align with the second question label
     location_y = start_y + 1*gap
     location_rect = pygame.Rect(location_x, location_y, btn_w, btn_h)
 
@@ -158,12 +173,12 @@ def datos_screen(screen):
                 if submit_rect.collidepoint(event.pos):
                     # For now, print the responses to console and continue
                     responses = [input_boxes[i].text if i in input_boxes else '' for i in range(len(questions))]
-                    print("Respuestas:", responses)
+                    print("Responses:", responses)
                 elif location_rect.collidepoint(event.pos):
                     # Import and run Superficie.main(screen) so it reuses the same pygame window.
                     module_path = os.path.join(os.path.dirname(__file__), 'Superficie.py')
                     if not os.path.exists(module_path):
-                        print('No se encontró Superficie.py en:', module_path)
+                        print('Superficie.py not found at:', module_path)
                     else:
                         try:
                             import importlib.util as _il
@@ -174,14 +189,55 @@ def datos_screen(screen):
                             # If Superficie defines a main function that accepts a screen, call it.
                             if hasattr(Superficie, 'main'):
                                 try:
-                                    # Call main with the current screen so the same window is reused.
-                                    Superficie.main(screen)
+                                    prev_screen = screen
+                                    try:
+                                        prev_size = prev_screen.get_size()
+                                    except Exception:
+                                        prev_size = (DEFAULT_WIDTH, DEFAULT_HEIGHT)
+
+                                    # Create fullscreen with SCALED if available.
+                                    flags = pygame.FULLSCREEN
+                                    if hasattr(pygame, 'SCALED'):
+                                        flags |= pygame.SCALED
+                                    info = pygame.display.Info()
+                                    real_w, real_h = info.current_w, info.current_h
+                                    factor = 1.5
+                                    factor = min(factor, 2.0)
+                                    logical_w = int(real_w * factor)
+                                    logical_h = int(real_h * factor)
+                                    try:
+                                        fs_screen = pygame.display.set_mode((logical_w, logical_h), flags)
+                                    except Exception:
+                                        fs_screen = pygame.display.set_mode((real_w, real_h), flags)
+
+                                    # Pass the fullscreen screen to Superficie
+                                    Superficie.main(fs_screen)
+
+                                    # After returning, ensure pygame/display are initialized
+                                    if not pygame.get_init() or pygame.display.get_surface() is None:
+                                        try:
+                                            pygame.init()
+                                        except Exception as e:
+                                            print('Could not reinitialize pygame:', e)
+
+                                    # Attempt to restore the previous windowed screen size
+                                    try:
+                                        pygame.display.set_mode(prev_size)
+                                        screen = pygame.display.get_surface()
+                                    except Exception:
+                                        try:
+                                            pygame.display.set_mode((DEFAULT_WIDTH, DEFAULT_HEIGHT))
+                                            screen = pygame.display.get_surface()
+                                        except Exception as e:
+                                            print('Could not restore previous window:', e)
+
+                                    print('Restored previous window after exiting Superficie')
                                 except Exception as inner_e:
-                                    print('Error ejecutando Superficie.main:', inner_e)
+                                    print('Error running Superficie.main:', inner_e)
                             else:
-                                print('Superficie.py no define una función main(screen)')
+                                print('Superficie.py does not define a main(screen) function')
                         except Exception as e:
-                            print('Error cargando Superficie.py:', e)
+                            print('Error loading Superficie.py:', e)
                 elif back_rect.collidepoint(event.pos):
                     running = False
 
@@ -205,8 +261,8 @@ def datos_screen(screen):
         pygame.draw.rect(screen, GRAY, location_rect, border_radius=8)
         pygame.draw.rect(screen, GRAY, back_rect, border_radius=8)
         # Use the title color for button labels to match the main screen
-        txt_submit = font_label.render("Send", True, TITLE_COLOR)
-        txt_location = font_label.render("Location Y", True, TITLE_COLOR)
+        txt_submit = font_label.render("Submit", True, TITLE_COLOR)
+        txt_location = font_label.render("Location", True, TITLE_COLOR)
         txt_back = font_label.render("Back", True, TITLE_COLOR)
         screen.blit(txt_submit, txt_submit.get_rect(center=submit_rect.center))
         screen.blit(txt_location, txt_location.get_rect(center=location_rect.center))

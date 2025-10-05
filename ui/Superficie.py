@@ -228,9 +228,17 @@ def main(screen=None, width=400, height=200, fullscreen=False):
         if fullscreen:
             # Create a fullscreen window at the current desktop resolution
             info = pygame.display.Info()
-            screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
+            # Use SCALED when available so the UI is correctly scaled on high-DPI displays
+            flags = pygame.FULLSCREEN
+            if hasattr(pygame, 'SCALED'):
+                flags |= pygame.SCALED
+            screen = pygame.display.set_mode((info.current_w, info.current_h), flags)
         else:
-            screen = pygame.display.set_mode((width, height))
+            # In windowed mode, use SCALED if available to account for display scaling
+            flags = 0
+            if hasattr(pygame, 'SCALED'):
+                flags |= pygame.SCALED
+            screen = pygame.display.set_mode((width, height), flags)
 
     try:
         return energia_screen(screen)
