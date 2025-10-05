@@ -1,0 +1,7 @@
+parametros espaciales de los modulos
+hexagono regular que define el area: 
+- a (lado): 3.4m
+Alto del modulo sin Dome deployment= 2m
+-con Dome deployment 5m
+Volumen fijo de modulo: 60.1 m^3
+
