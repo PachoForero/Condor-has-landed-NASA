@@ -75,9 +75,23 @@ def datos_screen(screen):
     font_input = pygame.font.SysFont(None, 24)
 
     sw, sh = screen.get_size()
-    # Scale and flip background to mirror horizontally if available
+    # Scale and flip background to mirror horizontally if available.
+    # Use smoothscale and maintain aspect ratio, then center-crop to cover the screen
     if bg_image:
-        bg_image = pygame.transform.scale(bg_image, (sw, sh))
+        img_w, img_h = bg_image.get_size()
+        # Determine scale factor to cover the screen (cover strategy)
+        scale = max(sw / img_w, sh / img_h)
+        new_w = int(img_w * scale)
+        new_h = int(img_h * scale)
+        # Use smoothscale for better quality when enlarging
+        try:
+            bg_image = pygame.transform.smoothscale(bg_image, (new_w, new_h))
+        except Exception:
+            bg_image = pygame.transform.scale(bg_image, (new_w, new_h))
+        # Center-crop to screen size
+        crop_x = (new_w - sw) // 2
+        crop_y = (new_h - sh) // 2
+        bg_image = bg_image.subsurface((crop_x, crop_y, sw, sh)).copy()
         bg_image = pygame.transform.flip(bg_image, True, False)  # horizontal flip (mirror)
     title_text = font_title.render("Datos - Responde las preguntas", True, TITLE_COLOR)
     title_rect = title_text.get_rect(center=(sw//2, int(sh*0.08)))
@@ -109,14 +123,27 @@ def datos_screen(screen):
         rect = (input_x, start_y + i*gap, input_w, 32)
         input_boxes[i] = InputBox(rect, font_input)
 
-    # Buttons centered below the form: Enviar | Location Y | Volver
+    # Buttons: Enviar y Volver permanecen centrados debajo del formulario.
+    # El botón 'Location Y' se reubica debajo del primer cuadro de texto
+    # y se alinea horizontalmente con la etiqueta de la segunda pregunta (label_x).
     btn_w, btn_h = 120, 40
     spacing = 12
-    total_w = btn_w * 3 + spacing * 2
+    total_w = btn_w * 2 + spacing  # Solo Enviar y Volver en la línea inferior
     start_x = sw//2 - total_w//2
     submit_rect = pygame.Rect(start_x, form_y + form_h - 50, btn_w, btn_h)
-    location_rect = pygame.Rect(start_x + (btn_w + spacing), form_y + form_h - 50, btn_w, btn_h)
-    back_rect = pygame.Rect(start_x + 2*(btn_w + spacing), form_y + form_h - 50, btn_w, btn_h)
+    back_rect = pygame.Rect(start_x + (btn_w + spacing), form_y + form_h - 50, btn_w, btn_h)
+
+    # Colocar Location a la derecha de la etiqueta de la segunda pregunta
+    # y alineado verticalmente con esa etiqueta (index 1).
+    # Calculamos la posición x usando el ancho renderizado de la etiqueta
+    # para que quede justo a su derecha con un pequeño margen.
+    label_for_location = font_label.render(questions[1], True, TEXT_COLOR)
+    label_width = label_for_location.get_width()
+    small_margin = 12
+    location_x = label_x + label_width + small_margin
+    # Alinear verticalmente con la etiqueta de la segunda pregunta
+    location_y = start_y + 1*gap
+    location_rect = pygame.Rect(location_x, location_y, btn_w, btn_h)
 
     running = True
     while running:
@@ -162,9 +189,10 @@ def datos_screen(screen):
         pygame.draw.rect(screen, GRAY, submit_rect, border_radius=8)
         pygame.draw.rect(screen, GRAY, location_rect, border_radius=8)
         pygame.draw.rect(screen, GRAY, back_rect, border_radius=8)
-        txt_submit = font_label.render("Enviar", True, TEXT_COLOR)
-        txt_location = font_label.render("Location Y", True, TEXT_COLOR)
-        txt_back = font_label.render("Volver", True, TEXT_COLOR)
+        # Use the title color for button labels to match the main screen
+        txt_submit = font_label.render("Send", True, TITLE_COLOR)
+        txt_location = font_label.render("Location Y", True, TITLE_COLOR)
+        txt_back = font_label.render("Back", True, TITLE_COLOR)
         screen.blit(txt_submit, txt_submit.get_rect(center=submit_rect.center))
         screen.blit(txt_location, txt_location.get_rect(center=location_rect.center))
         screen.blit(txt_back, txt_back.get_rect(center=back_rect.center))
