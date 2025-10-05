@@ -1,153 +1,257 @@
-# Condor-has-landed-NASA
-Con esta herramienta se podran simular las diferentes configuraciones de habitats para misiones de asentamientos y colonización, partiendo de espacios comprendidos entre el sol y el cinturon de asteroides del sistema solar
-A traves de la configuracion y el calculo de diferentes modelos de modulos y misiones de asentamiento y colonizacion, se puede simular el desarrollo de el habitat espacial dependiendo de los parametros y objetivos
+# CONDOR HAS LANDED
 
-## Calculos volumen disponible en cada cohete 
-### starship 
-Datos de referencia:
-- El diámetro total del fairing / fuselaje externo es de 9 m (diámetro exterior) según el Starship Users Guide de SpaceX. Referencia: Starship users guide de spacex (esta en el grupo)
-- la “envoltura dinámica de carga útil” (payload dynamic envelope) que SpaceX menciona es de 8 m de diámetro para la carga interna utilizable. Referencia: https://www.eoportal.org/other-space-activities/starship-of-spacex
-- Altura útil típica de carga: ~ 17.24 m para la sección recta interior, con opción de extensión hasta ~ 22 m.
-- Algunas fuentes estiman un volumen interno cercano a ~ 1 000 m³ para la bahía utilizable.
+**Condor-has-landed-NASA** is a tool designed to **simulate different habitat configurations** for settlement and colonization missions within regions **between the Sun and the Asteroid Belt** of the Solar System.
 
-Asumiendo que usas un cilindro ideal con diámetro 8m
+By configuring and calculating various **habitat module models** and **mission parameters**, it allows the simulation of space habitat development based on mission objectives and system constraints.
 
-<img width="557" height="323" alt="image" src="https://github.com/user-attachments/assets/71cb4987-793e-4894-9745-3ccb8f9a5ff2" />
+---
 
-para masa util estimada:
-- En configuración reutilizable: ~ 100 a 150 toneladas (100 000 a 150 000 kg) según SpaceX
-- En configuración desechable: algunas fuentes especulan hasta ~ 200 toneladas
+Calculation of Required Area per Crew Member Based on Mission Crew Size
 
-Conclusion: Entonces la densidad efectiva de carga (masa / volumen) para las configuraciones sería:
-(115.5 – 173.3 km/m^3) para el starship colocar peso max de 150 toneladas y un volumen max de 886.4m^3 con un diametro de 8m y unaaltura de entre 18 y 22m
+<img width="431" height="91" alt="image" src="https://github.com/user-attachments/assets/5f7e1036-ec90-4404-97e1-c354085dfd8e" />
 
-### New Glenn
+Calculation of net volume Based on Crew Size
 
-Datos de referencia:
-
-<img width="686" height="472" alt="image" src="https://github.com/user-attachments/assets/9d7e0aa1-3905-4e31-905d-332f0d0c29ac" />
-
-- Azul Origin indica que New Glenn puede llevar hasta 45 000 kg (45 toneladas) a órbita terrestre baja (LEO)
-- Diámetro del cohete / fairing: 7 m de diámetro exterior
-- En el New Glenn Payload User’s Guide se menciona que la altura útil de la bahía de carga (fairing) es 21.9 m con diámetro 7 m
-
-Asumiendo que la carga cabe en un cilindro de diámetro 7 m y altura total de la etpa 21.9 m:
-
-<img width="599" height="183" alt="image" src="https://github.com/user-attachments/assets/81aac9d4-3d46-446c-9438-dd857030b05a" />
-
-Conclusion: la densidad efectiva seria: 53.5kg/m3 colocar peso max de 45 tonaeladas y volumen max aprox de 458m^3 con 7 m de diametro y largo util de 11.9m
-
-Colocar la siguiente foto para el STARSHIP con opacidad en el area de ubicacion de los modulos
-
-<img width="291" height="781" alt="image" src="https://github.com/user-attachments/assets/232197a7-eebd-40b2-b1a3-374762f2e07e" />
-
-Colocar la diguiente foto para el NEW GLENN
-
-<img width="1920" height="1080" alt="Diseño sin título" src="https://github.com/user-attachments/assets/ba64df03-8bca-4221-a6c5-4e2f8eaaff50" />
-
-usar la sig referencia para el boton de tipo de cohete
-
-<img width="426" height="233" alt="ejemplo boton tipo de cohete" src="https://github.com/user-attachments/assets/f37e1f02-182e-44db-96e9-31b4906f37b6" />
-
-en costo total de la mision se pone un valor depnede del peso final
- en costo para el starship es de US$2000/kg
- en el costo del new glenn es de US$1,511U/kg
-
-## menu debe contener:
-
-  Modulo A 
-
-si selecciona mas info debe decir las siguientes especificaciones:
-Capacidad 2 personas
-Volumen max (sin Dome deployment): 60.2m^3
-Volumen max (with Dome deployment): 116.75m^3
-1 compuerta para EVA
-Paredes compatibles con Canadarm2
-- BioRLSS:
-  - 0.89 kg O₂ / persona / día (valor conservador en literatura para misiones que incluye ejercicio) entonces carga con 106.8 kg O₂ y Si se almacena como LOX
-    - (densidad LOX ≈ 1141 kg/m³): volumen = 106.8 / 1141 ≈ 0.094 m³ (≈ 94 L) (densidad LOX: 1141 kg/m³).https://pmc.ncbi.nlm.nih.gov/articles/PMC8398003/ https://www3.nd.edu/~cneal/CRN_Papers/Harper16_NS_LifeSupportLunarSettelment.pdf
-  - Supuesto usado (BVAD / NASA logistics): 2.39 kg por persona por día (como enviado / embalado) (esta cifra incluye empaques / preparación típico ISS/BVAD). https://ntrs.nasa.gov/api/citations/20190027563/downloads/20190027563.pdf la densidad de “alimentos listos para misión” varía: comidas liofilizadas ocupan menos masa pero requieren agua para rehidratación; comidas refrigeradas/frozen ocupan más volumen. NASA/BVAD presenta tablas de volumen por masa según tipo. en otraiteracion del programa se podria especificar mas y cambiar variables del bioRLSS segun el tipo de comida
-    - Cálculo: 2.39 kg × 2 × 60 = 286.8 kg total (comida + embalaje).
-    - Volumen (estimado): asumí una densidad global de paquete ≈ 800 kg/m³ (0.8 kg/L) — resultado: 286.8 / 800 = 0.3585 m³ ≈ 0.36 m³ (≈ 360 L).
-  - Energía — baterías: Supuestos de potencia por persona https://www3.nd.edu/~cneal/CRN_Papers/Harper16_NS_LifeSupportLunarSettelment.pdf https://cmapspublic3.ihmc.us/rid%3D1P89G93VL-Z1VT05-17QZ/Power%20Requirements%20and%20Strategy.pdf en la práctica se combinaría: paneles solares u otra generación + baterías sólo como buffer (no almacenar toda la energía de la misión en baterías). Para misiones de tránsito con energía nuclear/fisión o celdas de combustible, la estrategia será distinta.
-    - Alto (transit/surface ECLSS más completo): ~2.37 kW / persona (escenario con mayor capacidad ECLSS / climatización / procesamiento). Usé este valor para representar un caso exigente. (nota: conceptos de misión y estudios de potencia muestran requerimientos por tripulante desde cientos de W hasta kW según alcance)
-    - Bajo (ISS keep-alive/PLS): ~300 W / persona continuo
-      - Potencia total continuo (bajo): 300 W × 2 = 600 W. (60dias)
-      - Potencia total continuo (alto): 2,370 W × 2 ≈ 4,733 W. (60 dias)
-        - Bajo (216 kWh): masa ≈ 216,000 Wh / 250 Wh/kg ≈ 864 kg ; volumen ≈ 216,000 Wh / 500 Wh/L = 432 L = 0.432 m³.
-        - Alto (1,704 kWh): masa ≈ 6,816 kg ; volumen ≈ 3.41 m³
-        
-MODULO A PARA JUAN
-- Crew capacity: 2 HUMANS
-- Maximum internal volume (without Dome deployment): 60.2 m³
-- Maximum internal volume (with Dome deployment): 116.75 m³
-- Airlock / hatch: 1 EVA-compatible hatch
-- Wall interfaces: Compatible with Canadarm2 for handling and docking operation
-- BioRLSS
-    - Oxygen (O₂)
-      - Mass (by BVAD rate 0.89 kg/person·day): 106.8 kg
-      - Volume (by CTBE method from paper, 0.0527 m³/CTBE ≈ 2 CTBE): 0.105 m³
-    - Food (nutritional supplies)
-      - Mass (by BVAD 2.39 kg/person·day): 286.8 kg
-      - Volume (by CTBE method from paper, ≈ 7 CTBE): 0.37 m³
-    - Energy / Batteries
-      - Volume (low-power case = 216 kWh): 0.43 m³ | (high-power case = 1704 kWh): 3.41 m³
-      - Mass (low-power): 864 kg | (high-power): 6 816 kg
-      - Volume (CTBE equivalent, low ≈ 8 CTBE | high ≈ 65 CTBE): 0.42 – 3.43 m³ usar ESTE volumen
-- Eva suits
-- Human factors
-
-material del domo
-
-<img width="423" height="220" alt="image" src="https://github.com/user-attachments/assets/a7a22c5d-e83c-48da-a5f2-922809825f1b" />
-
-Cuanto pesa el modulo de canadarm 2 : Masa reportada del Canadarm2: ≈1 497 kg (CSA) — otras fuentes lo redondean hasta ~1 800 kg etnoces
-volumen reservado para el Canadarm en la bodega es 8 m³, una envolvente cilíndrica de 0.77 m de diámetro por 17 m de largo lo cubriría.
-
-peso de modulo estandar solo estructura y domo inflable:
+<img width="283" height="57" alt="image" src="https://github.com/user-attachments/assets/5dcc68ef-55a9-4f16-a90b-465ddd3381ac" />
 
 
-- Pared exterior: t_outer = 0.06 m (6 cm) — uso de casco compuesto multicapa.
-  - Proporciones: Al 40% / Ti 10% / Nextel 50% (más compósito/tejido).
-- Paredes internas: t_internal = 0.04 m (4 cm) (tabiques ligeros).
-  - Proporciones: Al 20% / Ti 5% / Nextel 75%.
-- Volumen exterior nuevo = 40.8 × 0.06 = 2.448 m³
-  - masa ≈ 5 581 kg (≈5.58 t).
-- Volumen interno nuevo = 82.446 × 0.04 = 3.298 m³
-  - masa ≈ 6 233 kg (≈6.23 t).
-  - Domo = 0.179 t 
 
-Masa total (optimizada) ≈ 5.58 + 6.23 + 0.18 = 12.0 t (≈12 toneladas).
+##  Available Volume Calculations for Each Launch Vehicle
 
-Interpretación alternativa: con paredes más delgadas y mayor uso de tejidos/compósitos (Nextel/Kevlar), la masa total baja a ~12 t — mucho más razonable para un módulo pequeño. Sigue siendo robusto pero menos penalizado por metal.
+###  Starship (SpaceX)
 
-#### lista de masas por area
+**Reference Data:**
 
-- Reparto de volumen (base = 60.2 m³)
+- Total fuselage diameter: **9 m**  
+- Usable payload envelope diameter: **8 m (internal usable space)**  
+- Usable height: **~17.24 m**, extendable up to **~22 m**  
+- Estimated usable internal volume: **~1,000 m³**
 
-  - Exercise 16% | Social 10% | Hygiene 7% | Logistics 25% | Galley 12% | Medical/Command 10% | Private (central) 20%.
+**Cylindrical model (8 m diameter):**
 
-Exercise — 16% → 9.632 m³
+![image](https://github.com/user-attachments/assets/71cb4987-793e-4894-9745-3ccb8f9a5ff2)
 
-Social / Comedor — 10% → 6.020 m³
+**Payload mass:**
+- Reusable configuration: **100–150 metric tons**
+- Expendable configuration (estimated): **up to 200 tons**
 
-Hygiene / Waste — 7% → 4.214 m³
+**Conclusion:**
+> Effective payload density (mass/volume):  
+> **115.5 – 173.3 kg/m³**
 
-Logistics / Maintenance / EVA — 25% → 15.050 m³
+Assuming a **maximum payload of 150 tons** and **usable volume of 886.4 m³**,  
+with **8 m diameter** and **18–22 m height**.
 
-Galley / Meal Prep — 12% → 7.224 m³
+---
 
-Medical / Command — 10% → 6.020 m³
+###  New Glenn (Blue Origin)
 
-Private (mini-hex central) — 20% → 12.040 m³
+**Reference Data:**
 
-## entonces
-- Ejercicio (sector periférico) — ≈ 500 kg — 9.632 m³
-  - ARED / resistive device (frame + actuators) — 220 kg (versión completa)
-  - Treadmill con mounts — 110 kg
-  - Cycle ergometer — 60 kg
-  - Arnés/sensores y anclajes — 40 kg
-  - Racks/protecciones — 70 kg
-- Social / Comedor / Misión (mesa + AV) — ≈ 230 kg — 6.020 m³
-  - Equipos: mesa plegable + fijaciones, pantalla/proyector, equipo AV, estantería con utensilios, panel de control local.
+![image](https://github.com/user-attachments/assets/9d7e0aa1-3905-4e31-905d-332f0d0c29ac)
+
+- Payload capacity: **up to 45 tons (45,000 kg) to LEO**  
+- Fairing diameter: **7 m**  
+- Usable payload fairing height: **21.9 m**
+
+**Cylindrical model (7 m diameter, 21.9 m height):**
+
+![image](https://github.com/user-attachments/assets/81aac9d4-3d46-446c-9438-dd857030b05a)
+
+**Conclusion:**
+> Effective density: **~53.5 kg/m³**  
+> Max payload: **45 tons**  
+> Max usable volume: **~458 m³**
+
+---
+
+###  Visualization References
+
+**Starship (payload zone highlighted with opacity):**
+
+![image](https://github.com/user-attachments/assets/232197a7-eebd-40b2-b1a3-374762f2e07e)
+
+**New Glenn:**
+
+![image](https://github.com/user-attachments/assets/ba64df03-8bca-4221-a6c5-4e2f8eaaff50)
+
+**Rocket type selection button reference:**
+
+<img width="426" height="233" alt="ejemplo boton tipo de cohete 2" src="https://github.com/user-attachments/assets/d6820280-48cf-474b-a182-42289b13edd8" />
+
+---
+
+##  Mission Cost
+
+Mission cost depends on **final payload mass**:
+
+| Rocket | Cost per kg (USD) |
+|---------|------------------:|
+| **Starship** | **$2,000 / kg** |
+| **New Glenn** | **$1,511 / kg** |
+
+---
+
+##  Module A
+
+**General specifications:**
+
+- **Crew capacity:** 2 humans  
+- **Maximum internal volume (no dome):** 60.2 m³  
+- **Maximum internal volume (with dome):** 116.75 m³  
+- **Airlock:** 1 EVA-compatible hatch  
+- **Walls:** Canadarm2 compatible  
+- **Dome structure:** multilayer composite shell  
+
+![image](https://github.com/user-attachments/assets/a7a22c5d-e83c-48da-a5f2-922809825f1b)
+
+---
+
+###  BioRLSS (Bioregenerative Life Support System)
+
+#### Oxygen (O₂)
+- Consumption: **0.89 kg O₂ / person / day**
+- Total for 2 crew × 60 days = **106.8 kg**
+- Stored as **LOX** (density ≈ 1141 kg/m³)
+  - Volume = 106.8 / 1141 ≈ **0.094 m³ (94 L)**  
+  - References:  
+    [PMC8398003](https://pmc.ncbi.nlm.nih.gov/articles/PMC8398003/)  
+    [Harper16_NS_LifeSupportLunarSettelment.pdf](https://www3.nd.edu/~cneal/CRN_Papers/Harper16_NS_LifeSupportLunarSettelment.pdf)
+
+#### Food
+- BVAD rate: **2.39 kg/person·day**
+- Total: **286.8 kg** (for 2 crew, 60 days)
+- Volume estimate (density 800 kg/m³): **0.36 m³ (360 L)**  
+- Reference:  
+  [NASA Logistics BVAD 2019](https://ntrs.nasa.gov/api/citations/20190027563/downloads/20190027563.pdf)
+
+#### Energy — Batteries
+- Power demand per person:
+  - **Low (keep-alive):** 300 W/person
+  - **High (transit/full ECLSS):** 2.37 kW/person
+- Duration: 60 days  
+- Calculations:
+  - **Low case (216 kWh):** 864 kg, 0.43 m³
+  - **High case (1,704 kWh):** 6,816 kg, 3.41 m³  
+
+References:  
+[Harper16_NS_LifeSupportLunarSettelment.pdf](https://www3.nd.edu/~cneal/CRN_Papers/Harper16_NS_LifeSupportLunarSettelment.pdf)  
+[Power Requirements and Strategy.pdf](https://cmapspublic3.ihmc.us/rid%3D1P89G93VL-Z1VT05-17QZ/Power%20Requirements%20and%20Strategy.pdf)
+
+---
+
+##  Module A (Juan Configuration)
+
+- **Crew capacity:** 2 humans  
+- **Internal volume (no dome):** 60.2 m³  
+- **Internal volume (with dome):** 116.75 m³  
+- **Airlock:** 1 EVA-compatible hatch  
+- **Canadarm2-compatible walls**
+
+### BioRLSS Summary
+| Resource | Mass | Volume | Notes |
+|-----------|------|--------|-------|
+| **O₂** | 106.8 kg | 0.105 m³ | LOX storage |
+| **Food** | 286.8 kg | 0.37 m³ | BVAD packed supplies |
+| **Batteries** | 864–6,816 kg | 0.42–3.43 m³ | Low ↔ High power cases |
+
+---
+
+##  Canadarm2
+
+- Reported mass: **~1,497 kg (CSA)**  
+  - Other sources round up to **~1,800 kg**
+- Reserved storage volume: **8 m³**
+  - Cylindrical envelope: **0.77 m diameter × 17 m length**
+
+---
+
+## Module Structure (Base Mass)
+
+- **Outer wall:** 6 cm (Al 40% / Ti 10% / Nextel 50%)  
+  - Volume = 2.448 m³ → **Mass ≈ 5,581 kg**
+- **Internal partitions:** 4 cm (Al 20% / Ti 5% / Nextel 75%)  
+  - Volume = 3.298 m³ → **Mass ≈ 6,233 kg**
+- **Inflatable dome:** **0.179 t**
+
+**Optimized total structural mass:**
+> **≈ 12.0 t (12,000 kg)**
+
+---
+
+##  Internal Distribution (Volume & Mass per Area)
+
+**Total internal volume:** 60.2 m³
+
+| Area | % | Volume (m³) | Mass (kg) |
+|------|--:|-------------:|-----------:|
+| Exercise | 16% | 9.632 | 500 |
+| Social / Dining | 10% | 6.020 | 230 |
+| Hygiene / Waste | 7% | 4.214 | 280 |
+| Logistics / EVA | 25% | 15.050 | 1,190 |
+| Galley / Kitchen | 12% | 7.224 | 370 |
+| Medical / Command | 10% | 6.020 | 340 |
+| Private (Central) | 20% | 12.040 | 310 |
+
+---
+
+###  Equipment per Area
+
+**Exercise (peripheral sector)** — *9.632 m³ / 500 kg*  
+- ARED (frame + actuators) — 220 kg  
+- Treadmill — 110 kg  
+- Cycle ergometer — 60 kg  
+- Harness / sensors — 40 kg  
+- Racks / protection mounts — 70 kg  
+
+**Social / Dining / Mission Area** — *6.020 m³ / 230 kg*  
+- Folding table, projector, AV system, utensils and panels.
+
+**Hygiene / Toilet / Waste Collection** — *4.214 m³ / 280 kg*  
+- Space toilet, solid compactor, hygiene filters, consumable lockers.
+
+**Logistics / Maintenance / EVA support** — *15.050 m³ / 1,190 kg (no batteries)*  
+- Storage racks, **Food (286.8 kg)**, **O₂ (106.8 kg)**, tools, EVA fixtures, comms racks.
+
+**Galley / Meal Prep** — *7.224 m³ / 370 kg*  
+- Water heater, compact cooling unit, utensils, small sink.
+
+**Medical / Command** — *6.020 m³ / 340 kg*  
+- Portable med kits, drugs, consoles, displays, foldable stretcher.
+
+**Private / Sleep / Waste (central mini-hex)** — *12.040 m³ / 310 kg*  
+- 2 bunks, personal lockers, work station, small waste packer.
+
+---
+
+##  Energy Scenarios
+
+| Case | Total Energy | Mass | Volume | Notes |
+|------|---------------|------|--------|-------|
+| **Low (keep-alive)** | 216 kWh | 864 kg | 0.43 m³ | Minimal life support power |
+| **High (full transit)** | 1,704 kWh | 6,816 kg | 3.41 m³ | Full ECLSS + processing |
+
+---
+
+##  Overall Mass Totals
+
+| Configuration | Total Mass (excl. structure) |
+|----------------|------------------------------:|
+| Base (no batteries) | ≈ **3,220 kg** |
+| With batteries — low | ≈ **4,084 kg** |
+| With batteries — high | ≈ **10,036 kg** |
+
+**Total module mass (structure + systems):**  
+> **≈ 12,000 kg + payload (3–10 t)** → **~15–22 tons**
+
+---
+
+###  Structural Integration (Layout Suggestion)
+
+- **6 peripheral sectors:** Exercise, Social, Hygiene, Logistics, Galley, Medical/Command.  
+- **1 central mini-hex:** Private / Sleeping area.  
+- Allows a radial layout with a central access hub and service connection through outer walls.
+
+<img width="504" height="412" alt="image" src="https://github.com/user-attachments/assets/c751d891-1408-4836-9e5a-d9639ad5efcf" />
+
 
