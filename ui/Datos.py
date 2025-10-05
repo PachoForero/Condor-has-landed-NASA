@@ -133,11 +133,13 @@ def datos_screen(screen):
         if i == 1:
             # Skip creating an input for the second question (location)
             continue
-    rect = (input_x, start_y + i*gap, input_w, 32)
-    input_boxes[i] = InputBox(rect, font_input)
-    # Make numeric-only for questions that expect numbers (indices 0,2,3)
-    if i in (0, 2, 3):
-        input_boxes[i].digits_only = True
+        # Shift first (i==0), third (i==2), and fourth (i==3) input boxes slightly to the right
+        x_offset = 40 if i in (0, 2, 3) else 0
+        rect = (input_x + x_offset, start_y + i*gap, input_w, 32)
+        input_boxes[i] = InputBox(rect, font_input)
+        # Make numeric-only for questions that expect numbers (indices 0,2,3)
+        if i in (0, 2, 3):
+            input_boxes[i].digits_only = True
 
     # Buttons: Enviar y Volver permanecen centrados debajo del formulario.
     # El botón 'Location Y' se reubica debajo del primer cuadro de texto
