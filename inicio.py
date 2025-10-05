@@ -121,7 +121,7 @@ def credits_screen(screen):
     clock = pygame.time.Clock()
     small_font = pygame.font.SysFont(None, 30)
     title_font = pygame.font.SysFont(None, 40)
-    lines = ["Credits", "Developed by: (put your name here)", "Assets: NASA / internal", "Press any key or click to return"]
+    lines = ["Credits", "Developed by:","Juan David Chica Garcia","Francisco Andres Forero Daza","Daniel Sneyder Ramirez Torres","Daniela Alejandra Castillo Avellaneda","Maria Jose Barrios Riaño","Assets: NASA / internal", "Press any key or click to return"]
     while True:
         clock.tick(60)
         for event in pygame.event.get():
