@@ -127,6 +127,7 @@ class Modulo:
 class Mundo:
     def __init__(self, camera):
         self.cam = camera
+        self.screen = camera.screen
         self.modulos = {}              # (q,r) -> Modulo
         self.base_ax = (0, 0)
         self.selected = None
@@ -199,6 +200,33 @@ class Mundo:
             return True
         return False
 
+    def try_place_from_green(self, mouse_screen):
+        """If click hits a green dot, place a module there with current next style."""
+        hit = self.green_hit(mouse_screen)
+        if hit is None:
+            return False
+        axial, _ = hit
+        self.place_with_style(axial, self.style_next)
+        return True
+
+    def select_or_toggle(self, mouse_screen):
+        """Select a module if clicked; deselect if clicking same or empty."""
+        picked = self.pick_modulo(mouse_screen)
+        if picked is None:
+            # clicked empty space -> deselect
+            self.selected = None
+        else:
+            if self.selected == picked:
+                self.selected = None
+            else:
+                self.selected = picked
+        self.refresh_dots()
+
+    def set_screen(self, screen):
+        self.screen = screen
+        # ensure any screen-space dots are recalculated
+        self.refresh_dots()
+
     # ---- Render ----
     def draw(self):
         surf = self.screen
@@ -207,18 +235,18 @@ class Mundo:
         for ax, mod in self.modulos.items():
             poly_w = self.poly_world_of(ax)
             poly_s = self.cam.apply_poly(poly_w)
-            pygame.draw.polygon(screen, mod.color(), poly_s)
-            pygame.draw.polygon(screen, PALETTE["borde"], poly_s, LINE_W)
+            pygame.draw.polygon(surf, mod.color(), poly_s)
+            pygame.draw.polygon(surf, PALETTE["borde"], poly_s, LINE_W)
 
         if self.selected is not None:
             for _, pos_s in self.green_dots_screen:
-                pygame.draw.circle(screen, PALETTE["verde"], (int(pos_s[0]), int(pos_s[1])), DOT_R)
-                pygame.draw.circle(screen, PALETTE["blanco"], (int(pos_s[0]), int(pos_s[1])), DOT_R, 2)
+                pygame.draw.circle(surf, PALETTE["verde"], (int(pos_s[0]), int(pos_s[1])), DOT_R)
+                pygame.draw.circle(surf, PALETTE["blanco"], (int(pos_s[0]), int(pos_s[1])), DOT_R, 2)
 
             if self.selected != self.base_ax and self.red_dot_screen is not None:
                 rx, ry = self.red_dot_screen
-                pygame.draw.circle(screen, PALETTE["rojo"], (int(rx), int(ry)), DOT_R)
-                pygame.draw.circle(screen, PALETTE["blanco"], (int(rx), int(ry)), DOT_R, 2)
+                pygame.draw.circle(surf, PALETTE["rojo"], (int(rx), int(ry)), DOT_R)
+                pygame.draw.circle(surf, PALETTE["blanco"], (int(rx), int(ry)), DOT_R, 2)
 
 # -------------------- App --------------------
 def create_window():
@@ -295,6 +323,7 @@ def modulos_screen(screen):
             elif e.type == pygame.VIDEORESIZE:
                 screen = pygame.display.get_surface()
                 cam.set_screen(screen)
+                world.set_screen(screen)
                 sw, sh = screen.get_size()
                 btn_h = max(36, int(sh * 0.06))
                 btn_w = max(120, int(sw * 0.14))
@@ -310,6 +339,7 @@ def modulos_screen(screen):
                 elif e.key == pygame.K_F11:
                     toggle_fullscreen()
                     cam.set_screen(pygame.display.get_surface())
+                    world.set_screen(pygame.display.get_surface())
                     sw, sh = cam.sw, cam.sh
                     btn_h = max(36, int(sh * 0.06))
                     btn_w = max(120, int(sw * 0.14))
