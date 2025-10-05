@@ -1,4 +1,4 @@
-# 🛰️ Condor-has-landed-NASA
+# CONDOR HAS LANDED
 
 **Condor-has-landed-NASA** is a tool designed to **simulate different habitat configurations** for settlement and colonization missions within regions **between the Sun and the Asteroid Belt** of the Solar System.
 
