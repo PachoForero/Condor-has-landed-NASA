@@ -30,14 +30,15 @@ else:
     flags = pygame.FULLSCREEN
 
 screen = pygame.display.set_mode((info.current_w, info.current_h), flags)
-pygame.display.set_caption("Condor has landed - NASA")
+pygame.display.set_caption("CONDOR HAS LANDED")
 WIDTH, HEIGHT = screen.get_size()
 
-font_title = pygame.font.SysFont(None, 50)
+font_title = pygame.font.SysFont(None, 100)
 font_button = pygame.font.SysFont(None, 36)
 
-title_text = font_title.render("Condor has landed", True, TITLE_COLOR)
-title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+title_text = font_title.render("CONDOR HAS LANDED", True, TITLE_COLOR)
+ # Position title at top center (small margin) without removing existing content
+title_rect = title_text.get_rect(midtop=(WIDTH // 2, 20))
 
 # Botones
 button_width, button_height = max(180, int(WIDTH * 0.15)), max(50, int(HEIGHT * 0.08))
