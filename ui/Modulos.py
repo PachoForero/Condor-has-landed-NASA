@@ -1,5 +1,8 @@
+# ui/Modulos.py
 import sys, math, os, json, time
 import pygame
+
+__all__ = ["create_window", "toggle_fullscreen", "modulos_screen", "save_configuration", "apply_config"]
 
 # -------------------- Config --------------------
 APP_NAME = "Hex Habitat — Pan, Zoom, UI"
@@ -15,6 +18,7 @@ PALETTE = {
     "ui_border": (120, 120, 135),
     "panel": (24, 24, 28),
 }
+
 HEX_SIZE = 45
 DOT_R = 9
 LINE_W = 2
@@ -23,8 +27,8 @@ FPS = 60
 PAN_STEP_SCR = 90
 ZOOM_STEP   = 1.12
 
-# Axial pointy-top
-NEI = [(1,0),(1,-1),(0,-1),(-1,0),(0,1),(-1,1)]
+# Axial (pointy-top) — orden estándar
+NEI = [(1,0),(1,-1),(0,-1),(-1,0),(-1,1),(0,1)]
 SQRT3 = math.sqrt(3.0)
 APOTHEM = HEX_SIZE * SQRT3 / 2.0
 
@@ -51,8 +55,6 @@ def _tinted_copy(src, rgb):
     return s
 
 # -------------------- Equipment --------------------
-# Effects per slot (summed over the habitat)
-# units: Energy [W], O2 [kg/day], Waste [kg/day], Food [kg/day], Crew [heads], Volume [m^3]
 ITEM_DEFS = [
     {"name": "O2 Generator", "dE": -200, "dO2": +5,  "dW": 0,   "dF": 0,   "dC": 0, "dV": 0.2},
     {"name": "Recycler",     "dE": -150, "dO2":  0,  "dW": -3,  "dF": 0,   "dC": 0, "dV": 0.3},
@@ -61,11 +63,11 @@ ITEM_DEFS = [
     {"name": "Crew Bunks",   "dE": -50,  "dO2":  0,  "dW": 0,   "dF": 0,   "dC": +2,"dV": 1.2},
 ]
 ITEM_NAMES = [x["name"] for x in ITEM_DEFS]
+EMPTY_LABEL = "Empty"   # slot vacío
 
-# Base properties per module style
 MODULE_BASE = {
-    0: {"name": "Prefabricated", "volume": 60.2,  "crew": 0},   # without dome
-    1: {"name": "Manufactured",  "volume": 116.75,"crew": 0},   # with dome
+    0: {"name": "Prefabricated", "volume": 60.2,  "crew": 0},
+    1: {"name": "Manufactured",  "volume": 116.75,"crew": 0},
 }
 
 # -------------------- Geometry --------------------
@@ -126,9 +128,10 @@ class Camera:
 # -------------------- Module --------------------
 class Modulo:
     __slots__ = ("q","r","style","equip")
-    def __init__(self, q, r, style=0):
+    def __init__(self, q, r, style=0, equip=None):
         self.q=q; self.r=r; self.style=style
-        self.equip = [0]*6  # 6 slots, index into ITEM_DEFS
+        # 6 slots, -1 = empty
+        self.equip = list(equip) if equip is not None else [-1]*6
     def axial(self): return (self.q, self.r)
     def neighbors_axial(self):
         q, r = self.q, self.r
@@ -248,6 +251,7 @@ class Mundo:
     def _get_scaled_sprite(self, style):
         surf = self.sprite_surface.get(style)
         if surf is None: return None
+        # El sprite es cuadrado y cubre el diámetro del hex (2*HEX_SIZE)
         target = max(1, int(2 * HEX_SIZE * self.cam.zoom))
         if self._scaled_px != target:
             for s in (0,1):
@@ -276,14 +280,14 @@ class Mundo:
         self.selector_rect = self.pref_rect = self.built_rect = None
         self.pending_ax = None
 
-    # ----- equipment panel (3x2) -----
+    # ----- equipment panel (2x3) -----
     def open_equip_panel(self):
         self.equip_open = True
         if not self.selected:
             self.equip_rect = None; self.equip_slot_rects = []; return
         cx, cy = self.cam.world_to_screen(self.center_world_of(self.selected))
-        cell_w, cell_h = 140, 48
-        cols, rows = 3, 2
+        cell_w, cell_h = 180, 50
+        cols, rows = 2, 3
         pad = 10
         w = cols*cell_w + (cols+1)*pad
         h = rows*cell_h + (rows+1)*pad + 28
@@ -319,6 +323,8 @@ class Mundo:
             base = MODULE_BASE[m.style]
             tV += base["volume"]; tC += base["crew"]
             for idx in m.equip:
+                if idx < 0:   # empty
+                    continue
                 item = ITEM_DEFS[idx]
                 tE += item["dE"]; tO2 += item["dO2"]; tW += item["dW"]; tF += item["dF"]; tC += item["dC"]; tV += item["dV"]
         self.totals = {
@@ -378,7 +384,8 @@ class Mundo:
                     pygame.draw.polygon(surf, PALETTE["white"], pts); pygame.draw.rect(surf, PALETTE["ui_border"], rr, 1, border_radius=6)
                 draw_arrow(al, "left"); draw_arrow(ar, "right")
                 mod = self.modulos[self.selected]
-                text = ITEM_NAMES[mod.equip[idx] % len(ITEM_DEFS)]
+                cur = mod.equip[idx]
+                text = EMPTY_LABEL if cur < 0 else ITEM_NAMES[cur % len(ITEM_DEFS)]
                 lab = pygame.font.SysFont(None, 22).render(text, True, PALETTE["white"])
                 surf.blit(lab, lab.get_rect(center=label.center))
 
@@ -470,7 +477,7 @@ def _draw_nav_grid(screen, rects):
     _draw_arrow(screen, up, "up"); _draw_arrow(screen, down, "down")
     _draw_arrow(screen, left, "left"); _draw_arrow(screen, right, "right")
 
-# -------------------- Save --------------------
+# -------------------- Save/Load --------------------
 def save_configuration(world, cam, save_dir="saves"):
     os.makedirs(save_dir, exist_ok=True)
     data = {
@@ -489,11 +496,55 @@ def save_configuration(world, cam, save_dir="saves"):
         json.dump(data, f, indent=2)
     return path
 
+def apply_config(world, cam, cfg: dict):
+    """Aplica una configuración (dict) a mundo+cámara."""
+    # cámara
+    cam_data = cfg.get("camera", {})
+    pos = cam_data.get("pos")
+    zoom = cam_data.get("zoom")
+    if isinstance(pos, (list, tuple)) and len(pos)==2:
+        cam.pos = (float(pos[0]), float(pos[1]))
+    if isinstance(zoom, (int, float)) and zoom > 0:
+        cam.zoom = float(zoom)
+
+    # módulos
+    world.modulos.clear()
+    mods = cfg.get("modules", [])
+    if not mods:
+        world.modulos[(0,0)] = Modulo(0,0,style=0)
+    else:
+        for m in mods:
+            q = int(m.get("q",0)); r = int(m.get("r",0))
+            st = int(m.get("style",0))
+            eq = m.get("equip", None)
+            if eq is None: equip = [-1]*6
+            else:
+                equip = [int(x) if int(x)>=0 else -1 for x in list(eq)[:6]]
+                equip += [-1]*(6-len(equip))
+            world.modulos[(q,r)] = Modulo(q,r,style=st,equip=equip)
+
+    world.selected = None
+    world.refresh_dots()
+    world.recompute_totals()
+
 # -------------------- Main screen --------------------
-def modulos_screen(screen):
+def modulos_screen(screen, config=None):
+    """
+    screen: pygame.Surface (ventana)
+    config: None | dict | str(ruta .json)
+    """
     clock = pygame.time.Clock()
     cam = Camera(screen)
     world = Mundo(cam)
+
+    # carga inicial opcional
+    if isinstance(config, str) and os.path.exists(config):
+        with open(config, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        apply_config(world, cam, cfg)
+    elif isinstance(config, dict):
+        apply_config(world, cam, config)
+    # else: queda un solo módulo base
 
     sw, sh = screen.get_size()
     btn_h = max(36, int(sh * 0.06))
@@ -575,8 +626,18 @@ def modulos_screen(screen):
                     mod = world.modulos[world.selected]
                     changed = False
                     for idx, al, ar, label, cell in world.equip_slot_rects:
-                        if al.collidepoint(mouse): mod.equip[idx] = (mod.equip[idx]-1) % len(ITEM_DEFS); changed = True
-                        elif ar.collidepoint(mouse): mod.equip[idx] = (mod.equip[idx]+1) % len(ITEM_DEFS); changed = True
+                        if al.collidepoint(mouse):
+                            # step left: …, 1,0,-1  (wrap)
+                            cur = mod.equip[idx]
+                            cur = len(ITEM_DEFS)-1 if cur==-1 else cur-1
+                            mod.equip[idx] = cur
+                            changed = True
+                        elif ar.collidepoint(mouse):
+                            # step right: -1,0,1,…
+                            cur = mod.equip[idx]
+                            cur = -1 if cur==len(ITEM_DEFS)-1 else cur+1
+                            mod.equip[idx] = cur
+                            changed = True
                     if changed: world.recompute_totals()
                     continue
 
@@ -600,14 +661,12 @@ def modulos_screen(screen):
         # save/back
         pygame.draw.rect(screen, PALETTE['ui'], save_rect, border_radius=8)
         pygame.draw.rect(screen, PALETTE['ui_border'], save_rect.inflate(6,6), 3, border_radius=10)
-        screen.blit(font_button.render('Save', True, PALETTE['white']),
-                    font_button.render('Save', True, PALETTE['white']).get_rect(center=save_rect.center))
+        lab = font_button.render('Save', True, PALETTE['white']); screen.blit(lab, lab.get_rect(center=save_rect.center))
         pygame.draw.rect(screen, PALETTE['ui'], back_rect, border_radius=8)
         pygame.draw.rect(screen, PALETTE['ui_border'], back_rect.inflate(6,6), 3, border_radius=10)
-        screen.blit(font_button.render('Back', True, PALETTE['white']),
-                    font_button.render('Back', True, PALETTE['white']).get_rect(center=back_rect.center))
+        lab2 = font_button.render('Back', True, PALETTE['white']); screen.blit(lab2, lab2.get_rect(center=back_rect.center))
 
-        # nav grid
+        # nav grid (usa los mismos rects que manejan clicks)
         _draw_nav_grid(screen, nav_rects)
 
         pygame.display.flip()
@@ -615,6 +674,8 @@ def modulos_screen(screen):
 
     return
 
+# Ejecutable directo (prueba)
 if __name__ == "__main__":
     screen = create_window()
-    modulos_screen(screen)
+    # modulos_screen(screen, config="ui/saves/alguno.json")  # o dict
+    modulos_screen(screen, config=None)
