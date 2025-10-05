@@ -1,3 +1,4 @@
+
 # ui/Energia.py
 import os, math, tempfile
 import pygame
@@ -56,6 +57,7 @@ def _slider(surf, rect, val_norm, active):
     return handle
 
 def _map_norm_to_lat(v): return -90.0 + 180.0*max(0.0, min(1.0, v))
+def _map_norm_to_lon(v): return -180.0 + 360.0*max(0.0, min(1.0, v))
 
 # ---------- Física ----------
 def _decl_series(n_days, obliq_deg):
@@ -70,9 +72,8 @@ def _daily_ins(lat_deg, delta, S0, tau):
     else: ws = math.acos(x)
     H = (S0/math.pi)*(ws*math.sin(phi)*math.sin(delta) + math.cos(phi)*math.cos(delta)*math.sin(ws))
     return max(0.0, H)*tau
-
 def _series(body, lat_deg):
-    if body == "Marte":
+    if body == "Mars":
         n, eps, S0, tau = 668, 25.19, 590, 0.72
     else:
         n, eps, S0, tau = 365, 1.54, 1361, 1.0
@@ -90,15 +91,15 @@ def _plot_area(x, y, y_max_global, w_px, h_px, path, rgba_fill):
     plt.xlim(x[0], x[-1])
     P = x[-1]; ticks=[0,P*0.25,P*0.5,P*0.75,P]
     plt.xticks([int(t) for t in ticks], [f"{int(t)}" for t in ticks])
-    plt.xlabel("Día del periodo"); plt.ylabel("Energía diaria (Wh/m²)")
+    plt.xlabel("Day of period"); plt.ylabel("Daily energy (Wh/m²)")
     plt.margins(x=0.01, y=0.0)
     plt.tight_layout(); plt.savefig(path, bbox_inches="tight", pad_inches=0.05); plt.close()
 
 # ---------- Recursos ----------
 _BASE_DIR = os.path.dirname(__file__)
-_BODY_IMAGES = {"Marte": os.path.join(_BASE_DIR, "marte.jpg"),
-                "Luna":  os.path.join(_BASE_DIR, "luna.jpg")}
-_cache_bg = {"Marte": None, "Luna": None}
+_BODY_IMAGES = {"Mars": os.path.join(_BASE_DIR, "marte.jpg"),
+                "Moon":  os.path.join(_BASE_DIR, "luna.jpg")}
+_cache_bg = {"Mars": None, "Moon": None}
 
 def _load_bg(body, size):
     p = _BODY_IMAGES.get(body)
@@ -110,7 +111,7 @@ def _load_bg(body, size):
 
 # ---------- Pantalla pública ----------
 def energia_screen(screen):
-    """Pantalla de energía anual. Retorna dict con {'body','lat'} o None al volver."""
+    """Annual energy screen. Returns dict with {'body','lat'} or None when returning to the menu."""
     global GLOBAL_YMAX, GLOBAL_MIN_ENERGY
 
     clock = pygame.time.Clock()
@@ -124,9 +125,9 @@ def energia_screen(screen):
     while running:
         dt = clock.tick(60)
         W, H = screen.get_size()
-        # Layout relativo y más compacto para pantallas pequeñas
-        m = max(8, int(min(W, H) * 0.03))           # margen horizontal (3% del menor)
-        top = max(12, int(H * 0.06))                # margen superior reducido
+        # Relative, more compact layout for small screens
+        m = max(8, int(min(W, H) * 0.03))           # horizontal margin (3% of the smaller dimension)
+        top = max(12, int(H * 0.06))                # reduced top margin
         slider_h = max(20, int(H * 0.035))
         slider = pygame.Rect(m, top + int(H * 0.02), max(160, W - 2 * m), slider_h)
 
@@ -139,7 +140,7 @@ def energia_screen(screen):
         b_back = pygame.Rect(W - m - btn_w, b_calc.top, btn_w, btn_h)   # Volver a menú
 
         graph_top = b_calc.bottom + int(H * 0.025)
-        # Reduce altura máxima del gráfico para garantizar que quepa
+        # Reduce max height of the graph to ensure it fits
         graph_h = max(100, min(int(H * 0.45), H - graph_top - m))
         graph = pygame.Rect(m, graph_top, max(160, W - 2 * m), graph_h)
 
@@ -158,7 +159,7 @@ def energia_screen(screen):
                     serie_max = max(y2) if y2 else 1.0
                     GLOBAL_MIN_ENERGY = min(y2) if y2 else 0.0
                     GLOBAL_YMAX = max(GLOBAL_YMAX, serie_max*1.05)  # 5% holgura
-                    fill = AREA_MARTE if body == "Marte" else AREA_LUNA
+                    fill = AREA_MARTE if body == "Mars" else AREA_LUNA
                     _plot_area(x2, y2, GLOBAL_YMAX, graph.width, graph.height, tmp_path, fill)
                     if os.path.exists(tmp_path):
                         img = pygame.image.load(tmp_path)
@@ -166,7 +167,7 @@ def energia_screen(screen):
                             img = pygame.transform.smoothscale(img, (graph.width,graph.height))
                         graph_surf = img
                 elif b_body.collidepoint(e.pos):
-                    body = "Luna" if body == "Marte" else "Marte"
+                    body = "Moon" if body == "Mars" else "Mars"
                     graph_surf = None
                 elif b_back.collidepoint(e.pos):
                     return {"body": body, "lat": _map_norm_to_lat(lat_norm)}
@@ -177,7 +178,7 @@ def energia_screen(screen):
                 if x1 > x0:
                     lat_norm = max(0, min(1, (e.pos[0]-x0)/float(x1-x0)))
 
-        # Fondo con imagen del cuerpo + velo
+        # Background with body image + veil
         bg = _cache_bg.get(body)
         if not bg or bg.get_size() != (W, H):
             bg = _load_bg(body, (W,H)); _cache_bg[body]=bg
@@ -185,18 +186,20 @@ def energia_screen(screen):
         else: screen.fill(SAND)
         veil = pygame.Surface((W,H), pygame.SRCALPHA); veil.fill((*SAND,80)); screen.blit(veil,(0,0))
 
-        # UI (posiciones relativas y más compactas)
+        # UI (relative positions and more compact)
         title_y = max(28, int(H * 0.05))
-        _text(screen, "Herramienta de energía solar anual", max(14, int(H * 0.03)), NAVY, center=(W // 2, title_y))
-        _text(screen, f"Cuerpo: {body}", max(10, int(H * 0.025)), NAVY, topleft=(m, top))
-        _text(screen, f"Latitud: {_map_norm_to_lat(lat_norm):+.1f}°", max(10, int(H * 0.025)), NAVY, topleft=(m, top + int(H * 0.03)))
+        _text(screen, "Annual solar energy tool", max(14, int(H * 0.03)), NAVY, center=(W // 2, title_y))
+        _text(screen, f"Body: {body}", max(10, int(H * 0.025)), NAVY, topleft=(m, top))
+        _text(screen, f"Latitude: {_map_norm_to_lat(lat_norm):+.1f}°", max(10, int(H * 0.025)), NAVY, topleft=(m, top + int(H * 0.03)))
         if GLOBAL_MIN_ENERGY is not None:
-            _text(screen, f"Energía mínima: {GLOBAL_MIN_ENERGY:.1f} Wh/m²", max(9, int(H * 0.018)), NAVY, topleft=(m, top + int(H * 0.055)))
+            _text(screen, f"Min energy: {GLOBAL_MIN_ENERGY:.1f} Wh/m²", max(9, int(H * 0.018)), NAVY, topleft=(m, top + int(H * 0.055)))
+            # Show longitude under the min energy label (derived from the slider position)
+            _text(screen, f"Longitude: {_map_norm_to_lon(lat_norm):+.1f}°", max(9, int(H * 0.018)), NAVY, topleft=(m, top + int(H * 0.08)))
 
         _slider(screen, slider, lat_norm, dragging)
-        _btn(screen, b_calc, "Calcular", fg=WHITE, bg=NAVY, font_size=max(10, int(H * 0.025)))
-        _btn(screen, b_body, f"Cambiar ({body})", fg=WHITE, bg=MARS if body == "Marte" else MOON, font_size=max(10, int(H * 0.025)))
-        _btn(screen, b_back, "Volver", fg=WHITE, bg=NAVY, font_size=max(10, int(H * 0.025)))
+        _btn(screen, b_calc, "Calculate", fg=WHITE, bg=NAVY, font_size=max(10, int(H * 0.025)))
+        _btn(screen, b_body, f"Switch ({body})", fg=WHITE, bg=MARS if body == "Mars" else MOON, font_size=max(10, int(H * 0.025)))
+        _btn(screen, b_back, "Back", fg=WHITE, bg=NAVY, font_size=max(10, int(H * 0.025)))
 
         if graph_surf:
             if (graph_surf.get_width(),graph_surf.get_height()) != (graph.width,graph.height):
