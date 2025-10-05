@@ -1,3 +1,4 @@
+# energia.py
 import os
 import math
 import tempfile
@@ -6,9 +7,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-# -----------------------------------------------
-# CONFIGURACIÓN
-# -----------------------------------------------
+# ------------------ Colores y ventana ------------------
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY  = (210, 210, 210)
@@ -19,21 +18,17 @@ DARK  = (34, 49, 73)
 
 pygame.init()
 W, H = 1280, 720
-screen = pygame.display.set_mode((W, H))
+screen = pygame.display.set_mode((W, H), pygame.RESIZABLE)
 pygame.display.set_caption("Energía solar anual — Marte o Luna")
 clock = pygame.time.Clock()
 
-# -----------------------------------------------
-# FUNCIONES AUXILIARES
-# -----------------------------------------------
+# ------------------ Utilidades UI ------------------
 def draw_text(surf, text, size, color, center=None, topleft=None):
     font = pygame.font.SysFont(None, size)
     txt = font.render(text, True, color)
     rect = txt.get_rect()
-    if center:
-        rect.center = center
-    if topleft:
-        rect.topleft = topleft
+    if center: rect.center = center
+    if topleft: rect.topleft = topleft
     surf.blit(txt, rect)
     return rect
 
@@ -55,9 +50,7 @@ def draw_slider(surf, rect, val_norm, active):
 def map_norm_to_lat(v): return -90.0 + 180.0 * max(0.0, min(1.0, v))
 def map_lat_to_norm(lat): return (lat + 90.0) / 180.0
 
-# -----------------------------------------------
-# FÍSICA: insolación anual simplificada
-# -----------------------------------------------
+# ------------------ Física ------------------
 def declination_series(n_days, obliquity):
     eps = math.radians(obliquity)
     return [math.asin(math.sin(eps) * math.sin(2 * math.pi * (d - 80) / n_days)) for d in range(n_days)]
@@ -77,64 +70,99 @@ def compute_series(body, lat):
     else:
         n, eps, S0, tau = 365, 1.54, 1361, 1.0
     deltas = declination_series(n, eps)
-    return [daily_insolation(lat, dlt, S0, tau) for dlt in deltas]
+    y = [daily_insolation(lat, dlt, S0, tau) for dlt in deltas]
+    return y, n  # serie y período (días)
 
-def plot_series(x, y, title, path):
-    plt.figure(figsize=(8,4), dpi=140)
+# ------------------ Gráfica (sin grid y sin título) ------------------
+def plot_series_to_png(x, y, ymax, width_px, height_px, path):
+    dpi = 140
+    fig_w = max(2, width_px / dpi)
+    fig_h = max(2, height_px / dpi)
+    plt.figure(figsize=(fig_w, fig_h), dpi=dpi)
     plt.plot(x, y)
-    plt.title(title)
-    plt.xlabel("Día del año")
+    plt.ylim(0, ymax)             # Y fijo 0..ymax
+    plt.xlim(x[0], x[-1])         # 0..periodo
+    # Sin título ni grid
+    P = x[-1]
+    ticks = [0, P*0.25, P*0.5, P*0.75, P]
+    plt.xticks([int(t) for t in ticks], [f"{int(t)}" for t in ticks])
+    plt.xlabel("Día del periodo")
     plt.ylabel("Energía diaria (Wh/m²)")
-    plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig(path)
+    plt.savefig(path, bbox_inches="tight", pad_inches=0.05)
     plt.close()
 
-# -----------------------------------------------
-# PANTALLA PRINCIPAL
-# -----------------------------------------------
+# ------------------ Main ------------------
 def main():
+    global screen  # <- imprescindible si reasignas screen al redimensionar
     lat_norm = 0.5
     dragging = False
     body = "Marte"
     graph_surf = None
-
-    slider_rect = pygame.Rect(100, 200, W - 200, 40)
-    btn_calc = pygame.Rect(100, 280, 200, 50)
-    btn_body = pygame.Rect(320, 280, 200, 50)
-    btn_exit = pygame.Rect(W - 300, 280, 200, 50)
-    graph_rect = pygame.Rect(100, 360, W - 200, 320)
+    tmp_path = os.path.join(tempfile.gettempdir(), f"energia_{os.getpid()}.png")
 
     running = True
     while running:
         dt = clock.tick(60)
+
+        # Superficie y layout actuales
+        W, H = screen.get_size()
+        top_y = 80
+        slider_rect = pygame.Rect(100, 200, max(240, W - 200), 40)
+        btn_calc   = pygame.Rect(100, 260, 200, 50)
+        btn_body   = pygame.Rect(320, 260, 220, 50)
+        btn_exit   = pygame.Rect(max(100, W - 260), 260, 160, 50)
+        graph_rect = pygame.Rect(100, 340, max(240, W - 200), max(200, H - 380))
+
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 running = False
+
+            elif e.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode((e.w, e.h), pygame.RESIZABLE)
+                graph_surf = None  # forzar re-render al nuevo tamaño
+
             elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
                 if slider_rect.collidepoint(e.pos):
                     dragging = True
+
                 elif btn_calc.collidepoint(e.pos):
                     lat = map_norm_to_lat(lat_norm)
-                    y = compute_series(body, lat)
-                    x = list(range(1, len(y)+1))
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-                        plot_series(x, y, f"{body} — lat={lat:.1f}°", tmp.name)
-                        img = pygame.image.load(tmp.name)
-                        graph_surf = pygame.transform.smoothscale(img, (graph_rect.width, graph_rect.height))
+                    y, period = compute_series(body, lat)
+
+                    # Cerrar ciclo para que se vea el periodo completo [0..P]
+                    y2 = y + [y[0]]
+                    x2 = list(range(0, period + 1))
+
+                    ymax = max(y2) if y2 else 1.0
+
+                    # Render al tamaño exacto del rectángulo
+                    plot_series_to_png(x2, y2, ymax, graph_rect.width, graph_rect.height, tmp_path)
+                    if os.path.exists(tmp_path):
+                        img = pygame.image.load(tmp_path)
+                        if img.get_width() != graph_rect.width or img.get_height() != graph_rect.height:
+                            img = pygame.transform.smoothscale(img, (graph_rect.width, graph_rect.height))
+                        graph_surf = img
+
                 elif btn_body.collidepoint(e.pos):
                     body = "Luna" if body == "Marte" else "Marte"
+                    graph_surf = None
+
                 elif btn_exit.collidepoint(e.pos):
                     running = False
+
             elif e.type == pygame.MOUSEBUTTONUP and e.button == 1:
                 dragging = False
+
             elif e.type == pygame.MOUSEMOTION and dragging:
                 x0, x1 = slider_rect.left + 10, slider_rect.right - 10
-                lat_norm = (e.pos[0] - x0) / float(x1 - x0)
-                lat_norm = max(0, min(1, lat_norm))
+                if x1 > x0:
+                    lat_norm = (e.pos[0] - x0) / float(x1 - x0)
+                    lat_norm = max(0, min(1, lat_norm))
 
+        # Dibujo
         screen.fill(WHITE)
-        draw_text(screen, "Herramienta de energía solar anual", 40, DARK, center=(W//2, 80))
+        draw_text(screen, "Herramienta de energía solar anual", 40, DARK, center=(W//2, top_y))
         draw_text(screen, f"Cuerpo: {body}", 28, DARK, topleft=(100, 140))
         draw_text(screen, f"Latitud: {map_norm_to_lat(lat_norm):+.1f}°", 28, DARK, topleft=(100, 170))
 
@@ -144,10 +172,18 @@ def main():
         draw_button(screen, btn_exit, "Salir", bg=RED)
 
         if graph_surf:
+            # Reescala si el rect cambió desde el render
+            if graph_surf.get_width() != graph_rect.width or graph_surf.get_height() != graph_rect.height:
+                graph_surf = pygame.transform.smoothscale(graph_surf, (graph_rect.width, graph_rect.height))
             screen.blit(graph_surf, graph_rect.topleft)
 
         pygame.display.flip()
 
+    # Limpieza
+    try:
+        if os.path.exists(tmp_path): os.remove(tmp_path)
+    except Exception:
+        pass
     pygame.quit()
 
 if __name__ == "__main__":
