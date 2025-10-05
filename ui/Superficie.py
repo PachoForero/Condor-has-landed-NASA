@@ -1,4 +1,18 @@
 # energia.py
+import os
+import math
+import tempfile
+import pygame
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+# ------------------ Colores y ventana ------------------
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY  = (210, 210, 210)
+BLUE  = (30, 144, 255)
+# energia.py
 import os, math, tempfile
 import pygame
 import matplotlib
