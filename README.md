@@ -60,6 +60,11 @@ en costo total de la mision se pone un valor depnede del peso final
 si selecciona mas info debe decir las siguientes especificaciones:
 Capacidad 2 personas
 Volumen max (sin Dome deployment): 60.2m^3
+Volumen max (with Dome deployment): 116.75m^3
+1 compuerta para EVA
+Paredes compatibles con Canadarm2
+- BioRLSS: 
+- 
 
 
 
