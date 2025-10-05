@@ -14,6 +14,7 @@ except Exception:
 # Configuración de la ventana
 WHITE = (255, 255, 255)
 BLUE = (30, 144, 255)
+TITLE_COLOR = (34, 49, 73)  # #223149
 GRAY = (200, 200, 200)
 BLACK = (0, 0, 0)
 
@@ -32,10 +33,10 @@ screen = pygame.display.set_mode((info.current_w, info.current_h), flags)
 pygame.display.set_caption("Condor has landed - NASA")
 WIDTH, HEIGHT = screen.get_size()
 
-font_title = pygame.font.SysFont(None, 48)
+font_title = pygame.font.SysFont(None, 70)
 font_button = pygame.font.SysFont(None, 36)
 
-title_text = font_title.render("Condor has landed - NASA", True, BLUE)
+title_text = font_title.render("Condor has landed - NASA", True, TITLE_COLOR)
 title_rect = title_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
 
 # Botones

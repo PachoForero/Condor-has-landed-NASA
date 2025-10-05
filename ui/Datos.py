@@ -3,6 +3,7 @@ import sys
 
 WHITE = (255, 255, 255)
 BLUE = (30, 144, 255)
+TITLE_COLOR = (34, 49, 73)  # #223149
 GRAY = (200, 200, 200)
 BLACK = (0, 0, 0)
 
@@ -59,7 +60,7 @@ def datos_screen(screen):
     font_input = pygame.font.SysFont(None, 24)
 
     sw, sh = screen.get_size()
-    title_text = font_title.render("Datos - Responde las preguntas", True, BLUE)
+    title_text = font_title.render("Datos - Responde las preguntas", True, TITLE_COLOR)
     title_rect = title_text.get_rect(center=(sw//2, int(sh*0.08)))
 
     questions = [
