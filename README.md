@@ -63,8 +63,44 @@ Volumen max (sin Dome deployment): 60.2m^3
 Volumen max (with Dome deployment): 116.75m^3
 1 compuerta para EVA
 Paredes compatibles con Canadarm2
-- BioRLSS: 
-- 
+- BioRLSS:
+  - 0.89 kg O₂ / persona / día (valor conservador en literatura para misiones que incluye ejercicio) entonces carga con 106.8 kg O₂ y Si se almacena como LOX
+    - (densidad LOX ≈ 1141 kg/m³): volumen = 106.8 / 1141 ≈ 0.094 m³ (≈ 94 L) (densidad LOX: 1141 kg/m³).https://pmc.ncbi.nlm.nih.gov/articles/PMC8398003/ https://www3.nd.edu/~cneal/CRN_Papers/Harper16_NS_LifeSupportLunarSettelment.pdf
+  - Supuesto usado (BVAD / NASA logistics): 2.39 kg por persona por día (como enviado / embalado) (esta cifra incluye empaques / preparación típico ISS/BVAD). https://ntrs.nasa.gov/api/citations/20190027563/downloads/20190027563.pdf la densidad de “alimentos listos para misión” varía: comidas liofilizadas ocupan menos masa pero requieren agua para rehidratación; comidas refrigeradas/frozen ocupan más volumen. NASA/BVAD presenta tablas de volumen por masa según tipo. en otraiteracion del programa se podria especificar mas y cambiar variables del bioRLSS segun el tipo de comida
+    - Cálculo: 2.39 kg × 2 × 60 = 286.8 kg total (comida + embalaje).
+    - Volumen (estimado): asumí una densidad global de paquete ≈ 800 kg/m³ (0.8 kg/L) — resultado: 286.8 / 800 = 0.3585 m³ ≈ 0.36 m³ (≈ 360 L).
+  - Energía — baterías: Supuestos de potencia por persona https://www3.nd.edu/~cneal/CRN_Papers/Harper16_NS_LifeSupportLunarSettelment.pdf https://cmapspublic3.ihmc.us/rid%3D1P89G93VL-Z1VT05-17QZ/Power%20Requirements%20and%20Strategy.pdf en la práctica se combinaría: paneles solares u otra generación + baterías sólo como buffer (no almacenar toda la energía de la misión en baterías). Para misiones de tránsito con energía nuclear/fisión o celdas de combustible, la estrategia será distinta.
+    - Alto (transit/surface ECLSS más completo): ~2.37 kW / persona (escenario con mayor capacidad ECLSS / climatización / procesamiento). Usé este valor para representar un caso exigente. (nota: conceptos de misión y estudios de potencia muestran requerimientos por tripulante desde cientos de W hasta kW según alcance)
+    - Bajo (ISS keep-alive/PLS): ~300 W / persona continuo
+      - Potencia total continuo (bajo): 300 W × 2 = 600 W. (60dias)
+      - Potencia total continuo (alto): 2,370 W × 2 ≈ 4,733 W. (60 dias)
+        - Bajo (216 kWh): masa ≈ 216,000 Wh / 250 Wh/kg ≈ 864 kg ; volumen ≈ 216,000 Wh / 500 Wh/L = 432 L = 0.432 m³.
+        - Alto (1,704 kWh): masa ≈ 6,816 kg ; volumen ≈ 3.41 m³
+        
+MODULO A PARA JUAN
+- Crew capacity: 2 HUMANS
+- Maximum internal volume (without Dome deployment): 60.2 m³
+- Maximum internal volume (with Dome deployment): 116.75 m³
+- Airlock / hatch: 1 EVA-compatible hatch
+- Wall interfaces: Compatible with Canadarm2 for handling and docking operation
+- BioRLSS
+    - Oxygen (O₂)
+      - Mass (by BVAD rate 0.89 kg/person·day): 106.8 kg
+      - Volume (by CTBE method from paper, 0.0527 m³/CTBE ≈ 2 CTBE): 0.105 m³
+    - Food (nutritional supplies)
+      - Mass (by BVAD 2.39 kg/person·day): 286.8 kg
+      - Volume (by CTBE method from paper, ≈ 7 CTBE): 0.37 m³
+    - Energy / Batteries
+      - Volume (low-power case = 216 kWh): 0.43 m³ | (high-power case = 1704 kWh): 3.41 m³
+      - Mass (low-power): 864 kg | (high-power): 6 816 kg
+      - Volume (CTBE equivalent, low ≈ 8 CTBE | high ≈ 65 CTBE): 0.42 – 3.43 m³ usar ESTE volumen
+- Eva suits
+- Human factors
+
+MODULO B PARA JUAN
+
+
+     
 
 
 
