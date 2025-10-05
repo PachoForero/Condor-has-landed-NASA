@@ -27,11 +27,17 @@ NEI = [(1,0),(1,-1),(0,-1),(-1,0),(-1,1),(0,1)]
 SQRT3 = math.sqrt(3.0)
 APOTHEM = HEX_SIZE * SQRT3 / 2.0
 
-SPRITE_CANDIDATES = ["Modulo.png", "Modulo.jpg"]
+# -------------------- Sprites --------------------
+# Prefabricated: Modulo.png
+# Manufactured:  ModuloB.png
+SPRITE_MAP = {
+    0: ["Modulo.png", "Modulo.jpg"],      # style 0
+    1: ["ModuloB.png", "ModuloB.jpg"],    # style 1
+}
 
-def _find_sprite_path():
+def _find_first_existing(candidates):
     here = os.path.dirname(__file__)
-    for name in SPRITE_CANDIDATES:
+    for name in candidates:
         p1 = os.path.join(here, name)
         p2 = os.path.join(os.getcwd(), name)
         if os.path.exists(p1): return p1
@@ -52,11 +58,10 @@ def axial_to_world(q, r):
     return (x, y)
 
 def hex_points_world(center_w):
-    # pointy-top: vertices at -30° + k*60°
     cx, cy = center_w
     pts = []
     for i in range(6):
-        ang = math.radians(60 * i - 30)
+        ang = math.radians(60 * i - 30)   # pointy-top
         pts.append((cx + HEX_SIZE * math.cos(ang),
                     cy + HEX_SIZE * math.sin(ang)))
     return pts
@@ -123,21 +128,25 @@ class Mundo:
         self.selected = None
         self.green_dots_screen = []    # [(axial, (sx,sy))]
         self.red_dot_screen = None
-        self.style_next = 0  # default for new modules
+        self.style_next = 0
         self.modulos[(0,0)] = Modulo(0, 0, style=0)
 
-        # Sprite + tinted versions
-        self.sprite_path = _find_sprite_path()
-        self.sprite_base = None
-        self.sprite_tinted = {0: None, 1: None}
-        self.sprite_scaled = {0: None, 1: None}
+        # Sprites por estilo
+        self.sprite_surface = {0: None, 1: None}
+        self.sprite_scaled  = {0: None, 1: None}
         self._scaled_px = None
-        if self.sprite_path:
-            try:
-                self.sprite_base = pygame.image.load(self.sprite_path).convert_alpha()
-                self.sprite_tinted[0] = _tinted_copy(self.sprite_base, PALETTE["prefab"])
-                self.sprite_tinted[1] = _tinted_copy(self.sprite_base, PALETTE["built"])
-            except: self.sprite_base = None
+        for style in (0,1):
+            path = _find_first_existing(SPRITE_MAP[style])
+            if path and os.path.exists(path):
+                try:
+                    self.sprite_surface[style] = pygame.image.load(path).convert_alpha()
+                except:
+                    self.sprite_surface[style] = None
+        # fallback a tinte si falta alguno
+        if self.sprite_surface[0] and not self.sprite_surface[1]:
+            self.sprite_surface[1] = _tinted_copy(self.sprite_surface[0], PALETTE["built"])
+        if self.sprite_surface[1] and not self.sprite_surface[0]:
+            self.sprite_surface[0] = _tinted_copy(self.sprite_surface[1], PALETTE["prefab"])
 
         # Style popup
         self.selecting_style = False
@@ -152,7 +161,7 @@ class Mundo:
         # Equipment panel
         self.equip_open = False
         self.equip_rect = None
-        self.equip_slot_rects = []     # [(slot_idx, left_arrow_rect, right_arrow_rect, label_rect)]
+        self.equip_slot_rects = []  # [(slot_idx, left_arrow_rect, right_arrow_rect, label_rect, cell_rect)]
 
     # ---- helpers ----
     def center_world_of(self, axial): return axial_to_world(axial[0], axial[1])
@@ -218,13 +227,15 @@ class Mundo:
         if self.selected: self.open_equip_panel()
 
     def _get_scaled_sprite(self, style):
-        if self.sprite_base is None: return None
+        surf = self.sprite_surface.get(style)
+        if surf is None: return None
         target = max(1, int(2 * HEX_SIZE * self.cam.zoom))
         if self._scaled_px != target:
             for s in (0,1):
-                self.sprite_scaled[s] = pygame.transform.smoothscale(self.sprite_tinted[s], (target, target))
+                base = self.sprite_surface.get(s)
+                self.sprite_scaled[s] = pygame.transform.smoothscale(base, (target, target)) if base else None
             self._scaled_px = target
-        return self.sprite_scaled[style]
+        return self.sprite_scaled.get(style)
 
     # ----- style selector (auto-size to text) -----
     def open_style_selector(self, anchor_screen_pos):
@@ -251,29 +262,30 @@ class Mundo:
         self.equip_open = True
         if not self.selected:
             self.equip_rect = None; self.equip_slot_rects = []; return
-        # place panel to the right of selected hex
         cx, cy = self.cam.world_to_screen(self.center_world_of(self.selected))
-        cell_w, cell_h = 120, 44
+        cell_w, cell_h = 140, 48
         cols, rows = 3, 2
         pad = 10
         w = cols*cell_w + (cols+1)*pad
-        h = rows*cell_h + (rows+1)*pad + 24
+        h = rows*cell_h + (rows+1)*pad + 28
         x = int(min(max(10, cx + 2*APOTHEM*self.cam.zoom + 12), self.screen.get_width()-w-10))
         y = int(min(max(10, cy - h//2), self.screen.get_height()-h-10))
         self.equip_rect = pygame.Rect(x, y, w, h)
 
-        # slots
+        # slots con flechas bien alineadas
         self.equip_slot_rects = []
-        y0 = y + pad + 24
+        y0 = y + pad + 26
         idx = 0
         for r in range(rows):
             x0 = x + pad
             for c in range(cols):
                 cell = pygame.Rect(x0, y0, cell_w, cell_h)
-                # arrow zones
-                ar = cell.inflate(-cell_w*0.6, -cell_h*0.4)  # right
-                al = ar.move(-(cell_w*0.6), 0)               # left
-                label = cell.inflate(-cell_w*0.35, -cell_h*0.35)
+                arrow_size = int(min(cell_w, cell_h) * 0.55)
+                # cuadrados para flechas a la izquierda y derecha, centrados verticalmente
+                al = pygame.Rect(cell.left + 6, cell.centery - arrow_size//2, arrow_size, arrow_size)
+                ar = pygame.Rect(cell.right - 6 - arrow_size, cell.centery - arrow_size//2, arrow_size, arrow_size)
+                # label ocupa el centro restante
+                label = pygame.Rect(al.right + 6, cell.top + 6, max(10, ar.left - al.right - 12), cell.height - 12)
                 self.equip_slot_rects.append((idx, al, ar, label, cell))
                 x0 += cell_w + pad
                 idx += 1
@@ -328,17 +340,19 @@ class Mundo:
 
             item_names = ["Item 1", "Item 2"]
             for idx, al, ar, label, cell in self.equip_slot_rects:
+                # marco de celda
                 pygame.draw.rect(surf, PALETTE["ui_border"], cell, 1, border_radius=6)
-                # arrows
+                # flechas
                 def draw_arrow(rr, dir_):
-                    cx, cy = rr.center; s = min(rr.w, rr.h) * 0.38
+                    cx, cy = rr.center; s = rr.w*0.34
                     if dir_=="left":
-                        pts=[(cx-s,cy),(cx+s,cy-s),(cx+s,cy+s)]
+                        pts=[(cx - s, cy), (cx + s, cy - s), (cx + s, cy + s)]
                     else:
-                        pts=[(cx+s,cy),(cx-s,cy-s),(cx-s,cy+s)]
+                        pts=[(cx + s, cy), (cx - s, cy - s), (cx - s, cy + s)]
                     pygame.draw.polygon(surf, PALETTE["white"], pts)
+                    pygame.draw.rect(surf, PALETTE["ui_border"], rr, 1, border_radius=6)
                 draw_arrow(al, "left"); draw_arrow(ar, "right")
-                # label
+                # etiqueta
                 mod = self.modulos[self.selected]
                 text = item_names[mod.equip[idx] % len(item_names)]
                 lab = pygame.font.SysFont(None, 22).render(text, True, PALETTE["white"])
@@ -403,29 +417,6 @@ def _draw_nav_grid(screen, rects):
     _draw_arrow(screen, up, "up"); _draw_arrow(screen, down, "down")
     _draw_arrow(screen, left, "left"); _draw_arrow(screen, right, "right")
 
-# ---------- Metrics panel ----------
-DEFAULT_METRICS = {
-    "Energy": 0,
-    "O2": 0,
-    "Waste": 0,
-    "Food": 0,
-    "Crew": 0,
-    "Total volume": 0,
-}
-def _draw_metrics_panel(screen, values, x=12, top=12, width=210):
-    h = 28 * (len(values) + 1) + 16
-    panel = pygame.Rect(x, top, width, h)
-    pygame.draw.rect(screen, PALETTE["ui"], panel, border_radius=10)
-    pygame.draw.rect(screen, PALETTE["ui_border"], panel, 2, border_radius=10)
-    font_t = pygame.font.SysFont(None, 22)
-    y = top + 12
-    title = pygame.font.SysFont(None, 24).render("Totals", True, PALETTE["white"])
-    screen.blit(title, (x + 12, y)); y += 28
-    for k, v in values.items():
-        txt = f"{k}: {v}"
-        surf = font_t.render(txt, True, PALETTE["white"])
-        screen.blit(surf, (x + 12, y)); y += 24
-
 # -------------------- Main screen --------------------
 def modulos_screen(screen):
     clock = pygame.time.Clock()
@@ -443,8 +434,6 @@ def modulos_screen(screen):
 
     font_title = pygame.font.SysFont(None, 32)
     font_button = pygame.font.SysFont(None, 26)
-
-    totals = DEFAULT_METRICS.copy()
 
     running = True
     while running:
@@ -512,7 +501,7 @@ def modulos_screen(screen):
                 if world.try_delete_from_red(mouse):
                     pass
                 elif world.try_place_from_green(mouse):
-                    pass  # style popup opens
+                    pass
                 else:
                     world.select_or_toggle(mouse)
 
@@ -526,9 +515,6 @@ def modulos_screen(screen):
         txt = f'Modules: {count}'
         txt_surf = font_title.render(txt, True, PALETTE['white'])
         screen.blit(txt_surf, txt_surf.get_rect(center=(sw//2, 20 + txt_surf.get_height()//2)))
-
-        # metrics left panel
-        _draw_metrics_panel(screen, totals, x=12, top=12, width=210)
 
         # save/back
         pygame.draw.rect(screen, PALETTE['ui'], save_rect, border_radius=8)
