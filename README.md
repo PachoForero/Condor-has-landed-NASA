@@ -21,7 +21,9 @@ Conclusion: Entonces la densidad efectiva de carga (masa / volumen) para las con
 (115.5 – 173.3 km/m^3) para el starship colocar peso max de 150 toneladas y un volumen max de 886.4m^3 con un diametro de 8m y unaaltura de entre 18 y 22m
 
 ### New Glenn
+
 Datos de referencia:
+
 <img width="686" height="472" alt="image" src="https://github.com/user-attachments/assets/9d7e0aa1-3905-4e31-905d-332f0d0c29ac" />
 
 - Azul Origin indica que New Glenn puede llevar hasta 45 000 kg (45 toneladas) a órbita terrestre baja (LEO)
