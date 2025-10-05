@@ -1,6 +1,8 @@
 # Condor-has-landed-NASA
 Con esta herramienta se podran simular las diferentes configuraciones de habitats para misiones de asentamientos y colonización, partiendo de espacios comprendidos entre el sol y el cinturon de asteroides de la via lactea. 
 
+A traves de la configuracion y el calculo de diferentes modelos de modulos y misiones de asentamiento y colonizacion, se puede simular el desarrollo de el habitat espacial dependiendo de los parametros y objetivos
+
 ## Calculos volumen disponible en cada cohete 
 ### starship 
 Datos de referencia:
@@ -36,7 +38,28 @@ Asumiendo que la carga cabe en un cilindro de diámetro 7 m y altura total de la
 
 Conclusion: la densidad efectiva seria: 53.5kg/m3 colocar peso max de 45 tonaeladas y volumen max aprox de 458m^3 con 7 m de diametro y largo util de 11.9m
 
-Colocar la siguiente foto para el starship
+Colocar la siguiente foto para el STARSHIP con opacidad en el area de ubicacion de los modulos
+
+<img width="291" height="781" alt="image" src="https://github.com/user-attachments/assets/232197a7-eebd-40b2-b1a3-374762f2e07e" />
+
+Colocar la diguiente foto para el NEW GLENN
+
+<img width="1920" height="1080" alt="Diseño sin título" src="https://github.com/user-attachments/assets/ba64df03-8bca-4221-a6c5-4e2f8eaaff50" />
+
+usar la sig referencia para el boton de tipo de cohete
+
+<img width="426" height="233" alt="ejemplo boton tipo de cohete" src="https://github.com/user-attachments/assets/f37e1f02-182e-44db-96e9-31b4906f37b6" />
+
+en costo total de la mision se pone un valor depnede del peso final
+ en costo para el starship es de US$2000/kg
+ en el costo del new glenn es de US$1,511U/kg
+
+ menu debe contener
+
+ Modulo A 
+
+si selecciona mas info debe decir las siguientes especificaciones:
+
 
 
 
