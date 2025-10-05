@@ -1,6 +1,7 @@
 import os
 import pygame
 import sys
+import subprocess
 
 WHITE = (255, 255, 255)
 BLUE = (30, 144, 255)
@@ -159,59 +160,28 @@ def datos_screen(screen):
                     responses = [input_boxes[i].text if i in input_boxes else '' for i in range(len(questions))]
                     print("Respuestas:", responses)
                 elif location_rect.collidepoint(event.pos):
-                    # Open Superficie screen in the same window
-                    try:
-                        # Import here to avoid circular import at module load
-                        # We want Superficie to use the same pygame window (surface) already
-                        # created by this module. Superficie creates its own window at import
-                        # time using pygame.display.set_mode, so we temporarily monkeypatch
-                        # pygame.display.set_mode and pygame.display.get_surface so that
-                        # when Superficie imports and calls set_mode it will receive our
-                        # existing `screen` object instead of creating a new window.
-                        import pygame as _pygame
-                        from importlib import import_module
-
-                        _orig_set_mode = _pygame.display.set_mode
-                        _orig_get_surface = _pygame.display.get_surface
-                        _orig_set_caption = _pygame.display.set_caption
-
-                        def _set_mode_wrapper(size, flags=0):
-                            # Try to apply the requested mode to the real display
-                            try:
-                                _orig_set_mode(size, flags)
-                            except Exception:
-                                # ignore; fallback to keeping the existing surface
-                                pass
-                            # Return the existing surface so importing module binds to it
-                            return screen
-
-                        def _get_surface_wrapper():
-                            return screen
-
-                        # Apply monkeypatch
-                        _pygame.display.set_mode = _set_mode_wrapper
-                        _pygame.display.get_surface = _get_surface_wrapper
-                        # Also preserve captions through the original
-                        _pygame.display.set_caption = _orig_set_caption
-
+                    # Import and run Superficie.main(screen) so it reuses the same pygame window.
+                    module_path = os.path.join(os.path.dirname(__file__), 'Superficie.py')
+                    if not os.path.exists(module_path):
+                        print('No se encontró Superficie.py en:', module_path)
+                    else:
                         try:
-                            # Load the module directly from the file to avoid requiring
-                            # the `ui` directory to be a package on sys.path.
                             import importlib.util as _il
-                            module_path = os.path.join(os.path.dirname(__file__), 'Superficie.py')
                             spec = _il.spec_from_file_location('ui.Superficie', module_path)
                             Superficie = _il.module_from_spec(spec)
+                            # Execute module code (this will define functions/classes)
                             spec.loader.exec_module(Superficie)
-                            # Call its main loop. It uses a module-level `screen` which,
-                            # due to our monkeypatch, will be our existing surface.
-                            Superficie.main()
-                        finally:
-                            # Restore original functions to avoid side-effects
-                            _pygame.display.set_mode = _orig_set_mode
-                            _pygame.display.get_surface = _orig_get_surface
-                            _pygame.display.set_caption = _orig_set_caption
-                    except Exception as e:
-                        print('Error launching Superficie:', e)
+                            # If Superficie defines a main function that accepts a screen, call it.
+                            if hasattr(Superficie, 'main'):
+                                try:
+                                    # Call main with the current screen so the same window is reused.
+                                    Superficie.main(screen)
+                                except Exception as inner_e:
+                                    print('Error ejecutando Superficie.main:', inner_e)
+                            else:
+                                print('Superficie.py no define una función main(screen)')
+                        except Exception as e:
+                            print('Error cargando Superficie.py:', e)
                 elif back_rect.collidepoint(event.pos):
                     running = False
 

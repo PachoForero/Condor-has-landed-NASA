@@ -40,9 +40,10 @@ def _text(surf, txt, size, color, center=None, topleft=None):
     if topleft: rect.topleft = topleft
     surf.blit(r, rect); return rect
 
-def _btn(surf, rect, label, fg=WHITE, bg=NAVY):
+def _btn(surf, rect, label, fg=WHITE, bg=NAVY, font_size=26):
+    """Draw a button and center the label with given font size."""
     pygame.draw.rect(surf, bg, rect, border_radius=12)
-    _text(surf, label, 26, fg, center=rect.center)
+    _text(surf, label, font_size, fg, center=rect.center)
 
 def _slider(surf, rect, val_norm, active):
     pygame.draw.rect(surf, SAND, rect, border_radius=8)
@@ -123,14 +124,24 @@ def energia_screen(screen):
     while running:
         dt = clock.tick(60)
         W, H = screen.get_size()
+        # Layout relativo y más compacto para pantallas pequeñas
+        m = max(8, int(min(W, H) * 0.03))           # margen horizontal (3% del menor)
+        top = max(12, int(H * 0.06))                # margen superior reducido
+        slider_h = max(20, int(H * 0.035))
+        slider = pygame.Rect(m, top + int(H * 0.02), max(160, W - 2 * m), slider_h)
 
-        # Layout relativo
-        m = 100
-        slider = pygame.Rect(m, 200, max(300, W-2*m), 44)
-        b_calc = pygame.Rect(m, 260, 200, 52)
-        b_body = pygame.Rect(m+220, 260, 220, 52)
-        b_back = pygame.Rect(W-m-160, 260, 160, 52)   # Volver a menú
-        graph = pygame.Rect(m, 340, max(300,W-2*m), max(220, H-380))
+        btn_h = max(28, int(H * 0.045))
+        btn_w = max(90, int(W * 0.14))
+        gap_x = max(6, int(W * 0.015))
+
+        b_calc = pygame.Rect(m, slider.bottom + int(H * 0.02), btn_w, btn_h)
+        b_body = pygame.Rect(b_calc.right + gap_x, b_calc.top, btn_w, btn_h)
+        b_back = pygame.Rect(W - m - btn_w, b_calc.top, btn_w, btn_h)   # Volver a menú
+
+        graph_top = b_calc.bottom + int(H * 0.025)
+        # Reduce altura máxima del gráfico para garantizar que quepa
+        graph_h = max(100, min(int(H * 0.45), H - graph_top - m))
+        graph = pygame.Rect(m, graph_top, max(160, W - 2 * m), graph_h)
 
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
@@ -174,17 +185,18 @@ def energia_screen(screen):
         else: screen.fill(SAND)
         veil = pygame.Surface((W,H), pygame.SRCALPHA); veil.fill((*SAND,80)); screen.blit(veil,(0,0))
 
-        # UI
-        _text(screen, "Herramienta de energía solar anual", 40, NAVY, center=(W//2, 90))
-        _text(screen, f"Cuerpo: {body}", 28, NAVY, topleft=(m, 140))
-        _text(screen, f"Latitud: {_map_norm_to_lat(lat_norm):+.1f}°", 28, NAVY, topleft=(m, 170))
+        # UI (posiciones relativas y más compactas)
+        title_y = max(28, int(H * 0.05))
+        _text(screen, "Herramienta de energía solar anual", max(14, int(H * 0.03)), NAVY, center=(W // 2, title_y))
+        _text(screen, f"Cuerpo: {body}", max(10, int(H * 0.025)), NAVY, topleft=(m, top))
+        _text(screen, f"Latitud: {_map_norm_to_lat(lat_norm):+.1f}°", max(10, int(H * 0.025)), NAVY, topleft=(m, top + int(H * 0.03)))
         if GLOBAL_MIN_ENERGY is not None:
-            _text(screen, f"Energía mínima: {GLOBAL_MIN_ENERGY:.1f} Wh/m²", 22, NAVY, topleft=(m, 310))
+            _text(screen, f"Energía mínima: {GLOBAL_MIN_ENERGY:.1f} Wh/m²", max(9, int(H * 0.018)), NAVY, topleft=(m, top + int(H * 0.055)))
 
         _slider(screen, slider, lat_norm, dragging)
-        _btn(screen, b_calc, "Calcular", fg=WHITE, bg=NAVY)
-        _btn(screen, b_body, f"Cambiar ({body})", fg=WHITE, bg=MARS if body=="Marte" else MOON)
-        _btn(screen, b_back, "Volver", fg=WHITE, bg=NAVY)
+        _btn(screen, b_calc, "Calcular", fg=WHITE, bg=NAVY, font_size=max(10, int(H * 0.025)))
+        _btn(screen, b_body, f"Cambiar ({body})", fg=WHITE, bg=MARS if body == "Marte" else MOON, font_size=max(10, int(H * 0.025)))
+        _btn(screen, b_back, "Volver", fg=WHITE, bg=NAVY, font_size=max(10, int(H * 0.025)))
 
         if graph_surf:
             if (graph_surf.get_width(),graph_surf.get_height()) != (graph.width,graph.height):
@@ -197,3 +209,38 @@ def energia_screen(screen):
         pygame.display.flip()
 
     # nunca llega
+
+
+def main(screen=None, width=400, height=200, fullscreen=False):
+    """Entry point compatible with being called from another module.
+
+    If `screen` is provided, it will be used. Otherwise a new pygame
+    display will be created with the given width/height. If `fullscreen`
+    is True the display will be created in fullscreen mode using the
+    current display resolution.
+
+    Returns the same value as `energia_screen`.
+    """
+    created_screen = False
+    if screen is None:
+        pygame.init()
+        created_screen = True
+        if fullscreen:
+            # Create a fullscreen window at the current desktop resolution
+            info = pygame.display.Info()
+            screen = pygame.display.set_mode((info.current_w, info.current_h), pygame.FULLSCREEN)
+        else:
+            screen = pygame.display.set_mode((width, height))
+
+    try:
+        return energia_screen(screen)
+    finally:
+        if created_screen:
+            pygame.quit()
+
+
+if __name__ == '__main__':
+    # Start the tool in fullscreen so the user sees it occupying the
+    # entire screen. Call main() to ensure proper initialization and
+    # cleanup of pygame.
+    main(fullscreen=True)
