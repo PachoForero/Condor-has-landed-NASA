@@ -16,10 +16,7 @@ GREEN = (40, 180, 120)
 RED   = (200, 60, 60)
 DARK  = (34, 49, 73)
 
-pygame.init()
-W, H = 1280, 720
-screen = pygame.display.set_mode((W, H), pygame.RESIZABLE)
-pygame.display.set_caption("Energía solar anual — Marte o Luna")
+# Do not auto-init or create a top-level window here; allow main() to receive an existing screen.
 clock = pygame.time.Clock()
 
 # ------------------ Utilidades UI ------------------
@@ -93,9 +90,19 @@ def plot_series_to_png(x, y, ymax, width_px, height_px, path):
     plt.close()
 
 # ------------------ Main ------------------
-def main():
-    global screen  # <- imprescindible si reasignas screen al redimensionar
+def main(existing_screen=None):
+    """Run the Superficie UI. If existing_screen is provided, use it instead of creating a new window.
+    This allows the screen to be shared with other modules (e.g., Datos).
+    """
+    global screen
     lat_norm = 0.5
+    if existing_screen is not None:
+        screen = existing_screen
+    else:
+        pygame.init()
+        W, H = 1280, 720
+        screen = pygame.display.set_mode((W, H), pygame.RESIZABLE)
+        pygame.display.set_caption("Energía solar anual — Marte o Luna")
     dragging = False
     body = "Marte"
     graph_surf = None
