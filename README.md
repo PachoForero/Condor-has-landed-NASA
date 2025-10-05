@@ -55,7 +55,7 @@ en costo total de la mision se pone un valor depnede del peso final
 
 ## menu debe contener:
 
- Modulo A 
+  Modulo A 
 
 si selecciona mas info debe decir las siguientes especificaciones:
 Capacidad 2 personas
@@ -97,11 +97,26 @@ MODULO A PARA JUAN
 - Eva suits
 - Human factors
 
-MODULO B PARA JUAN
+material del domo
+
+<img width="423" height="220" alt="image" src="https://github.com/user-attachments/assets/a7a22c5d-e83c-48da-a5f2-922809825f1b" />
+
+Cuanto pesa el modulo de canadarm 2 : Masa reportada del Canadarm2: ≈1 497 kg (CSA) — otras fuentes lo redondean hasta ~1 800 kg etnoces
+volumen reservado para el Canadarm en la bodega es 8 m³, una envolvente cilíndrica de 0.77 m de diámetro por 17 m de largo lo cubriría.
+
+peso de modulo estandar solo estructura y domo inflable:
 
 
-     
+- Pared exterior: t_outer = 0.06 m (6 cm) — uso de casco compuesto multicapa.
+  - Proporciones: Al 40% / Ti 10% / Nextel 50% (más compósito/tejido).
+- Paredes internas: t_internal = 0.04 m (4 cm) (tabiques ligeros).
+  - Proporciones: Al 20% / Ti 5% / Nextel 75%.
+- Volumen exterior nuevo = 40.8 × 0.06 = 2.448 m³
+  - masa ≈ 5 581 kg (≈5.58 t).
+- Volumen interno nuevo = 82.446 × 0.04 = 3.298 m³
+  - masa ≈ 6 233 kg (≈6.23 t).
+  - Domo = 0.179 t 
 
+Masa total (optimizada) ≈ 5.58 + 6.23 + 0.18 = 12.0 t (≈12 toneladas).
 
-
-
+Interpretación alternativa: con paredes más delgadas y mayor uso de tejidos/compósitos (Nextel/Kevlar), la masa total baja a ~12 t — mucho más razonable para un módulo pequeño. Sigue siendo robusto pero menos penalizado por metal.
