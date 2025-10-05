@@ -1,6 +1,7 @@
 import sys
 import math
 import pygame
+import os
 
 # -------------------- Config --------------------
 APP_NAME = "Hábitat Hexagonal"
@@ -164,7 +165,9 @@ class Mundo:
     # ---- Render ----
     def draw(self):
         surf = self.screen
-        surf.fill(PALETTE["fondo"])
+        # Solo rellenar fondo con color si no se está usando una imagen de fondo
+        if not getattr(self, 'use_bg', False):
+            surf.fill(PALETTE["fondo"])
 
         # Dibujar módulos
         for ax, m in self.modulos.items():
@@ -216,6 +219,36 @@ def modulos_screen(screen):
     clock = pygame.time.Clock()
     world = Mundo(screen)
 
+    # Intentar cargar una imagen de fondo desde rutas comunes (relativas al paquete)
+    bg_image = None
+    base_dir = os.path.dirname(os.path.abspath(__file__)) if 'os' in globals() else None
+    candidates = []
+    if base_dir:
+        candidates = [
+            os.path.join(base_dir, 'back.jpg'),
+        ]
+    else:
+        candidates = ['back.jpg']
+
+    for p in candidates:
+        try:
+            if os.path.exists(p):
+                img = pygame.image.load(p)
+                bg_image = img.convert()
+                break
+        except Exception:
+            bg_image = None
+            break
+
+    # Si hay imagen, precalcular tamaño inicial
+    bg_surf = None
+    if bg_image is not None:
+        sw, sh = screen.get_size()
+        bg_surf = pygame.transform.smoothscale(bg_image, (sw, sh))
+        world.use_bg = True
+    else:
+        world.use_bg = False
+
     # Botón volver (tamaño relativo)
     sw, sh = screen.get_size()
     btn_w, btn_h = max(100, int(sw * 0.12)), max(36, int(sh * 0.06))
@@ -237,6 +270,10 @@ def modulos_screen(screen):
                 world.screen = pygame.display.get_surface()
                 world.center = (world.screen.get_width()//2, world.screen.get_height()//2)
                 world.refresh_dots()
+                # Reescalar fondo si existe
+                if 'bg_image' in locals() and bg_image is not None:
+                    sw2, sh2 = world.screen.get_size()
+                    bg_surf = pygame.transform.smoothscale(bg_image, (sw2, sh2))
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE:
                     # Regresar al llamador en vez de cerrar toda la aplicación
@@ -262,12 +299,18 @@ def modulos_screen(screen):
                 if back_rect.collidepoint(mouse):
                     running = False
 
+        # Dibujar fondo: imagen si existe, si no color sólido
+        if 'bg_surf' in locals() and bg_surf is not None:
+            screen.blit(bg_surf, (0, 0))
+        else:
+            screen.fill(PALETTE['fondo'])
+
         world.draw()
 
         # Dibujar contador superior
         sw, sh = screen.get_size()
         count = len(world.modulos)
-        txt = f'Módulos instalados: {count}'
+        txt = f' {count}'
         txt_surf = font_title.render(txt, True, PALETTE['blanco'])
         txt_rect = txt_surf.get_rect(center=(sw//2, 20 + txt_surf.get_height()//2))
         screen.blit(txt_surf, txt_rect)
