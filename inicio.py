@@ -14,8 +14,8 @@ except Exception:
 # Configuración de la ventana
 WHITE = (255, 255, 255)
 BLUE = (30, 144, 255)
-TITLE_COLOR = (34, 49, 73)  # #223149
-GRAY = (200, 200, 200)
+TITLE_COLOR = (34, 49, 73)  # #223149 (reverted)
+GRAY = (238, 229, 202)  # #EEE5CA
 BLACK = (0, 0, 0)
 
 pygame.init()
@@ -62,6 +62,9 @@ exit_h = int(button_height * 0.8)
 margin = max(20, int(WIDTH * 0.02))
 exit_button_rect = pygame.Rect(WIDTH - exit_w - margin, HEIGHT - exit_h - margin, exit_w, exit_h)
 
+# Credits button placed under the horizontal buttons, centered
+credits_button_rect = pygame.Rect((WIDTH - button_width) // 2, HEIGHT // 2 + button_height + 20, button_width, button_height)
+
 
 def draw_button(rect, text):
     # Create a surface with per-pixel alpha for semi-transparent button
@@ -69,7 +72,8 @@ def draw_button(rect, text):
     alpha_color = (*GRAY, 180)  # RGBA: last value is alpha (0-255)
     pygame.draw.rect(surf, alpha_color, surf.get_rect(), border_radius=10)
     screen.blit(surf, rect.topleft)
-    txt = font_button.render(text, True, BLACK)
+    # Use title color for button text to match the title (except Exit button)
+    txt = font_button.render(text, True, TITLE_COLOR)
     txt_rect = txt.get_rect(center=rect.center)
     screen.blit(txt, txt_rect)
 
@@ -77,7 +81,7 @@ def draw_button(rect, text):
 def draw_exit_button(rect, text):
     # Semi-transparent exit button
     surf = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
-    exit_color = (180, 20, 0)
+    exit_color = (223, 138, 93)  # #DF8A5D
     alpha_color = (*exit_color, 180)
     pygame.draw.rect(surf, alpha_color, surf.get_rect(), border_radius=10)
     screen.blit(surf, rect.topleft)
@@ -110,6 +114,37 @@ def load_gif_frames_with_pillow(path):
     except Exception:
         pass
     return frames
+
+
+def credits_screen(screen):
+    """Simple credits screen: shows some text and returns to main when any key or mouse button is pressed."""
+    clock = pygame.time.Clock()
+    small_font = pygame.font.SysFont(None, 30)
+    title_font = pygame.font.SysFont(None, 40)
+    lines = ["Credits", "Developed by: (put your name here)", "Assets: NASA / internal", "Press any key or click to return"]
+    while True:
+        clock.tick(60)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN or (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1):
+                return
+
+        # Draw background
+        screen.fill(WHITE)
+
+        y = HEIGHT // 4
+        for i, line in enumerate(lines):
+            if i == 0:
+                txt = title_font.render(line, True, TITLE_COLOR)
+            else:
+                txt = small_font.render(line, True, BLACK)
+            rect = txt.get_rect(center=(WIDTH // 2, y))
+            screen.blit(txt, rect)
+            y += 50
+
+        pygame.display.flip()
 
 
 def main():
@@ -214,6 +249,7 @@ def main():
         screen.blit(title_text, title_rect)
         draw_button(button1_rect, "Habitat simulation")
         draw_button(button2_rect, "See habitat")
+        draw_button(credits_button_rect, "Credits")
         draw_exit_button(exit_button_rect, "Exit")
 
         for event in pygame.event.get():
@@ -228,6 +264,8 @@ def main():
                 elif exit_button_rect.collidepoint(event.pos):
                     pygame.quit()
                     sys.exit()
+                elif credits_button_rect.collidepoint(event.pos):
+                    credits_screen(screen)
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
