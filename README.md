@@ -150,4 +150,18 @@ Private (mini-hex central) — 20% → 12.040 m³
   - Racks/protecciones — 70 kg
 - Social / Comedor / Misión (mesa + AV) — ≈ 230 kg — 6.020 m³
   - Equipos: mesa plegable + fijaciones, pantalla/proyector, equipo AV, estantería con utensilios, panel de control local.
-
+- Higiene / Inodoro / Recolección — ≈ 280 kg — 4.214 m³
+  - Equipos: toilet espacial (pumps + interfaces), compactador/recolector sólidos, bombas/filtros de higiene, lockers de consumibles.
+- Logística / Mantenimiento / EVA support (stowage) — ≈ 1 190 kg (sin baterías) — 15.050 m³
+  - Racks de stowage / estructura — 120 kg
+  - Comida BVAD (2 pax, 60 días) — 286.8 kg (volumen ≈ 0.36 m³)
+  - Oxígeno (O₂) total — 106.8 kg (si LOX: volumen líquido ≈ 0.094 m³) + tanque/protecciones ≈ 30 kg extra
+  - Bancos/herramientas de mantenimiento — 120 kg
+  - Estación fixtures EVA / suit test — 140 kg
+  - Racks IT/comms EVA — 80 kg
+- Galley / Meal Prep — ≈ 370 kg — 7.224 m³
+  - rehidratación/water heater, pequeña unidad de enfriamiento (si aplica), utensilios, fregadero compacto.
+- Médico / Comando (monitoring & mission planning) — ≈ 340 kg — 6.020 m³
+  - equipo médico portátil (ecógrafo, monitorización), armario de fármacos, consola/racks de comando y displays, camilla plegable.
+- Privado / Sleep / Waste Management (mini-hex central) — ≈ 310 kg — 12.040 m³ (central)
+  - 2 camas con anclajes, lockers personales, estación de trabajo personal, compactador/estación packing residuos.
