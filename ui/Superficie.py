@@ -206,8 +206,10 @@ def energia_screen(screen):
                 graph_surf = pygame.transform.smoothscale(graph_surf, (graph.width,graph.height))
             frame = pygame.Surface((graph.width+12, graph.height+12), pygame.SRCALPHA)
             pygame.draw.rect(frame, (*NAVY, 40), frame.get_rect(), border_radius=16)
-            screen.blit(frame, (graph.left-6, graph.top-6))
-            screen.blit(graph_surf, graph.topleft)
+            # Shift graph down slightly to make room for the longitude text above it
+            y_offset = max(6, int(H * 0.01))
+            screen.blit(frame, (graph.left-6, graph.top-6 + y_offset))
+            screen.blit(graph_surf, (graph.left, graph.top + y_offset))
 
         pygame.display.flip()
 
