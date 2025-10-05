@@ -105,6 +105,31 @@ def datos_screen(screen):
         crop_y = (new_h - sh) // 2
         bg_image = bg_image.subsurface((crop_x, crop_y, sw, sh)).copy()
         bg_image = pygame.transform.flip(bg_image, True, False)  # horizontal flip (mirror)
+    # Prepare Condor images (default and hover) but scale after we know screen size
+    condor_raw = None
+    condor_hover_raw = None
+    condor2_raw = None
+    try:
+        condor_raw = pygame.image.load(os.path.join(base_path, 'Condor.png')).convert_alpha()
+    except Exception:
+        try:
+            condor_raw = pygame.image.load(os.path.join(base_path, '..', 'Condor.png')).convert_alpha()
+        except Exception:
+            condor_raw = None
+    try:
+        condor_hover_raw = pygame.image.load(os.path.join(base_path, 'Condor1.png')).convert_alpha()
+    except Exception:
+        try:
+            condor_hover_raw = pygame.image.load(os.path.join(base_path, '..', 'Condor1.png')).convert_alpha()
+        except Exception:
+            condor_hover_raw = None
+    try:
+        condor2_raw = pygame.image.load(os.path.join(base_path, 'Condor2.png')).convert_alpha()
+    except Exception:
+        try:
+            condor2_raw = pygame.image.load(os.path.join(base_path, '..', 'Condor2.png')).convert_alpha()
+        except Exception:
+            condor2_raw = None
     title_text = font_title.render("Data - Answer the questions", True, TITLE_COLOR)
     title_rect = title_text.get_rect(center=(sw//2, int(sh*0.08)))
 
@@ -163,6 +188,113 @@ def datos_screen(screen):
     location_y = start_y + 1*gap
     location_rect = pygame.Rect(location_x, location_y, btn_w, btn_h)
 
+    # We'll scale the condor images to a reasonable width relative to screen
+    condor_image = None
+    condor_hover_image = None
+    condor2_image = None
+    condor_pos = (10, sh - 10)  # placeholder, will adjust by height
+    if condor_raw:
+        try:
+            desired_w = min(max(120, int(sw * 0.18)), 400)
+            # increase base width by 30%
+            desired_w = int(min(desired_w * 1.3, 800))
+            rw, rh = condor_raw.get_size()
+            scale_h = int(rh * (desired_w / rw))
+            try:
+                condor_image = pygame.transform.smoothscale(condor_raw, (desired_w, scale_h))
+            except Exception:
+                condor_image = pygame.transform.scale(condor_raw, (desired_w, scale_h))
+            condor_pos = (10, sh - condor_image.get_height() - 10)
+        except Exception:
+            condor_image = condor_raw
+    if condor_hover_raw:
+        try:
+            # Scale hover image to match base condor size when possible
+            if condor_image:
+                target_w = condor_image.get_width()
+            else:
+                target_w = min(max(120, int(sw * 0.18)), 400)
+            # match hover exactly to base condor width
+            target_w = int(min(target_w, 800))
+            rw, rh = condor_hover_raw.get_size()
+            scale_h = int(rh * (target_w / rw))
+            try:
+                condor_hover_image = pygame.transform.smoothscale(condor_hover_raw, (target_w, scale_h))
+            except Exception:
+                condor_hover_image = pygame.transform.scale(condor_hover_raw, (target_w, scale_h))
+        except Exception:
+            condor_hover_image = condor_hover_raw
+
+    # Scale condor2 to match hover size (if available)
+    if condor2_raw:
+        try:
+            # Prefer matching the base condor size so all variants share same size
+            if condor_image:
+                target_w = condor_image.get_width()
+            elif condor_hover_image:
+                target_w = condor_hover_image.get_width()
+            else:
+                target_w = min(max(120, int(sw * 0.18)), 400)
+            # match condor2 exactly to base condor width
+            target_w = int(min(target_w, 800))
+            rw, rh = condor2_raw.get_size()
+            scale_h = int(rh * (target_w / rw))
+            try:
+                condor2_image = pygame.transform.smoothscale(condor2_raw, (target_w, scale_h))
+            except Exception:
+                condor2_image = pygame.transform.scale(condor2_raw, (target_w, scale_h))
+        except Exception:
+            condor2_image = condor2_raw
+
+    # Compute a shared anchor position so all condor variants align
+    try:
+        # Prefer the base condor image height as the anchor so all images align
+        if condor_image:
+            anchor_h = condor_image.get_height()
+        elif condor_hover_image:
+            anchor_h = condor_hover_image.get_height()
+        elif condor2_image:
+            anchor_h = condor2_image.get_height()
+        else:
+            anchor_h = 0
+        condor_pos = (10, sh - anchor_h - 10)
+    except Exception:
+        condor_pos = (10, sh - 10)
+
+    # Helper: try to get system DPI (Windows), fall back to 96
+    def get_system_dpi():
+        try:
+            if sys.platform.startswith('win'):
+                try:
+                    import ctypes
+                    user32 = ctypes.windll.user32
+                    # Prefer GetDpiForSystem (Windows 10+)
+                    if hasattr(user32, 'GetDpiForSystem'):
+                        dpi = user32.GetDpiForSystem()
+                        if dpi and dpi > 0:
+                            return int(dpi)
+                    # Fallback to GetDeviceCaps on the screen DC
+                    hdc = user32.GetDC(0)
+                    gdi32 = ctypes.windll.gdi32
+                    LOGPIXELSX = 88
+                    dpi = gdi32.GetDeviceCaps(hdc, LOGPIXELSX)
+                    try:
+                        user32.ReleaseDC(0, hdc)
+                    except Exception:
+                        pass
+                    if dpi and dpi > 0:
+                        return int(dpi)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        return 96
+
+    # Convert 5 cm to pixels using system DPI
+    DPI = get_system_dpi()
+    cm_to_inch = 1.0 / 2.54
+    extra_lift_pixels_5cm = int(5.0 * cm_to_inch * DPI)
+
     running = True
     while running:
         for event in pygame.event.get():
@@ -171,6 +303,7 @@ def datos_screen(screen):
                 sys.exit()
             for box in input_boxes.values():
                 box.handle_event(event)
+            # We don't need an event to change Condor image on hover; we'll check mouse pos each frame.
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if submit_rect.collidepoint(event.pos):
                     # For now, print the responses to console and continue
@@ -257,6 +390,34 @@ def datos_screen(screen):
             if i in input_boxes:
                 input_boxes[i].update()
                 input_boxes[i].draw(screen)
+
+        # Check hover over the first input box (index 0) and select condor image accordingly
+        current_condor = None
+        try:
+            mouse_pos = pygame.mouse.get_pos()
+            # Priority: input box hover -> condor1 (hover), else location button -> condor2, else base condor
+            if 0 in input_boxes and input_boxes[0].rect.collidepoint(mouse_pos):
+                current_condor = condor_hover_image or condor_image
+            elif location_rect.collidepoint(mouse_pos):
+                current_condor = condor2_image or condor_hover_image or condor_image
+            else:
+                current_condor = condor_image
+        except Exception:
+            current_condor = condor_image
+
+        # Draw condor image in bottom-left if available
+        if current_condor:
+            try:
+                pos_x, pos_y = condor_pos
+                # Draw all variants at the same anchor position and size
+                screen.blit(current_condor, (pos_x, pos_y))
+            except Exception:
+                # In case condor_pos became invalid, recalc simple bottom-left
+                try:
+                    pos = (10, sh - current_condor.get_height() - 10)
+                    screen.blit(current_condor, pos)
+                except Exception:
+                    pass
 
         # Draw buttons
         pygame.draw.rect(screen, GRAY, submit_rect, border_radius=8)
