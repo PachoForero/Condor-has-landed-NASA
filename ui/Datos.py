@@ -70,6 +70,31 @@ class InputBox:
 
 def datos_screen(screen):
     clock = pygame.time.Clock()
+    # Ensure pygame and display surface are initialized. This prevents errors when
+    # the module is imported before pygame.init() or if another module changed the display.
+    try:
+        if not pygame.get_init():
+            pygame.init()
+    except Exception:
+        pass
+    try:
+        if pygame.display.get_surface() is None:
+            # Try to restore a display using the passed screen size if possible
+            try:
+                size = screen.get_size()
+                pygame.display.set_mode(size)
+            except Exception:
+                try:
+                    pygame.display.set_mode((DEFAULT_WIDTH, DEFAULT_HEIGHT))
+                except Exception:
+                    pass
+        # Re-bind screen to the current display surface to ensure it's valid
+        try:
+            screen = pygame.display.get_surface() or screen
+        except Exception:
+            pass
+    except Exception:
+        pass
     # Load and prepare background image (mirrored)
     try:
         base_path = os.path.dirname(__file__)
@@ -82,7 +107,8 @@ def datos_screen(screen):
             bg_image = pygame.image.load(img_path).convert()
         except Exception:
             bg_image = None
-    font_title = pygame.font.SysFont(None, 40)
+    # Increase title font size by ~30% (40 -> 52)
+    font_title = pygame.font.SysFont(None, 52)
     font_label = pygame.font.SysFont(None, 26)
     font_input = pygame.font.SysFont(None, 24)
 
@@ -109,6 +135,8 @@ def datos_screen(screen):
     condor_raw = None
     condor_hover_raw = None
     condor2_raw = None
+    condor3_raw = None
+    condor4_raw = None
     try:
         condor_raw = pygame.image.load(os.path.join(base_path, 'Condor.png')).convert_alpha()
     except Exception:
@@ -130,7 +158,21 @@ def datos_screen(screen):
             condor2_raw = pygame.image.load(os.path.join(base_path, '..', 'Condor2.png')).convert_alpha()
         except Exception:
             condor2_raw = None
-    title_text = font_title.render("Data - Answer the questions", True, TITLE_COLOR)
+    try:
+        condor3_raw = pygame.image.load(os.path.join(base_path, 'Condor3.png')).convert_alpha()
+    except Exception:
+        try:
+            condor3_raw = pygame.image.load(os.path.join(base_path, '..', 'Condor3.png')).convert_alpha()
+        except Exception:
+            condor3_raw = None
+    try:
+        condor4_raw = pygame.image.load(os.path.join(base_path, 'Condor4.png')).convert_alpha()
+    except Exception:
+        try:
+            condor4_raw = pygame.image.load(os.path.join(base_path, '..', 'Condor4.png')).convert_alpha()
+        except Exception:
+            condor4_raw = None
+    title_text = font_title.render("Habitat Information", True, TEXT_COLOR)
     title_rect = title_text.get_rect(center=(sw//2, int(sh*0.08)))
 
     questions = [
@@ -192,6 +234,8 @@ def datos_screen(screen):
     condor_image = None
     condor_hover_image = None
     condor2_image = None
+    condor3_image = None
+    condor4_image = None
     condor_pos = (10, sh - 10)  # placeholder, will adjust by height
     if condor_raw:
         try:
@@ -245,6 +289,43 @@ def datos_screen(screen):
                 condor2_image = pygame.transform.scale(condor2_raw, (target_w, scale_h))
         except Exception:
             condor2_image = condor2_raw
+
+    # Scale condor3/condor4 to match base condor size
+    if condor3_raw:
+        try:
+            if condor_image:
+                target_w = condor_image.get_width()
+            elif condor_hover_image:
+                target_w = condor_hover_image.get_width()
+            else:
+                target_w = min(max(120, int(sw * 0.18)), 400)
+            target_w = int(min(target_w, 800))
+            rw, rh = condor3_raw.get_size()
+            scale_h = int(rh * (target_w / rw))
+            try:
+                condor3_image = pygame.transform.smoothscale(condor3_raw, (target_w, scale_h))
+            except Exception:
+                condor3_image = pygame.transform.scale(condor3_raw, (target_w, scale_h))
+        except Exception:
+            condor3_image = condor3_raw
+
+    if condor4_raw:
+        try:
+            if condor_image:
+                target_w = condor_image.get_width()
+            elif condor_hover_image:
+                target_w = condor_hover_image.get_width()
+            else:
+                target_w = min(max(120, int(sw * 0.18)), 400)
+            target_w = int(min(target_w, 800))
+            rw, rh = condor4_raw.get_size()
+            scale_h = int(rh * (target_w / rw))
+            try:
+                condor4_image = pygame.transform.smoothscale(condor4_raw, (target_w, scale_h))
+            except Exception:
+                condor4_image = pygame.transform.scale(condor4_raw, (target_w, scale_h))
+        except Exception:
+            condor4_image = condor4_raw
 
     # Compute a shared anchor position so all condor variants align
     try:
@@ -306,9 +387,63 @@ def datos_screen(screen):
             # We don't need an event to change Condor image on hover; we'll check mouse pos each frame.
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if submit_rect.collidepoint(event.pos):
-                    # For now, print the responses to console and continue
+                    # Call Cohete.py (reuse same pygame screen if possible)
                     responses = [input_boxes[i].text if i in input_boxes else '' for i in range(len(questions))]
                     print("Responses:", responses)
+                    # Try to import ui.Cohete from file and call its main(screen)
+                    module_path = os.path.join(os.path.dirname(__file__), 'Cohete.py')
+                    if not os.path.exists(module_path):
+                        print('Cohete.py not found at:', module_path)
+                    else:
+                        try:
+                            import importlib.util as _il
+                            spec = _il.spec_from_file_location('ui.Cohete', module_path)
+                            Cohete = _il.module_from_spec(spec)
+                            spec.loader.exec_module(Cohete)
+                            # Prefer a main entry point; detect if it accepts 'screen' and call accordingly
+                            import inspect
+                            def _call_maybe_with_screen(fn):
+                                try:
+                                    sig = inspect.signature(fn)
+                                    params = sig.parameters
+                                    # If function accepts varargs or at least one parameter, try passing screen
+                                    accepts_args = any(p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD) for p in params.values()) or len(params) >= 1
+                                    if accepts_args:
+                                        try:
+                                            return fn(screen)
+                                        except TypeError:
+                                            # fallback to no-arg call
+                                            return fn()
+                                    else:
+                                        return fn()
+                                except Exception:
+                                    # If introspection fails, try calling with screen then without
+                                    try:
+                                        return fn(screen)
+                                    except TypeError:
+                                        return fn()
+
+                            if hasattr(Cohete, 'main'):
+                                try:
+                                    _call_maybe_with_screen(Cohete.main)
+                                except Exception as e:
+                                    print('Error running Cohete.main:', e)
+                            else:
+                                # fallback: if Cohete defines a function named run or start, try them
+                                if hasattr(Cohete, 'run'):
+                                    try:
+                                        _call_maybe_with_screen(Cohete.run)
+                                    except Exception as e:
+                                        print('Error running Cohete.run:', e)
+                                elif hasattr(Cohete, 'start'):
+                                    try:
+                                        _call_maybe_with_screen(Cohete.start)
+                                    except Exception as e:
+                                        print('Error running Cohete.start:', e)
+                                else:
+                                    print('Cohete.py has no callable entry point (main/run/start)')
+                        except Exception as e:
+                            print('Error loading Cohete.py:', e)
                 elif location_rect.collidepoint(event.pos):
                     # Import and run Superficie.main(screen) so it reuses the same pygame window.
                     module_path = os.path.join(os.path.dirname(__file__), 'Superficie.py')
@@ -395,9 +530,13 @@ def datos_screen(screen):
         current_condor = None
         try:
             mouse_pos = pygame.mouse.get_pos()
-            # Priority: input box hover -> condor1 (hover), else location button -> condor2, else base condor
+            # Priority: input box hover -> condor1/3/4, else location button -> condor2, else base condor
             if 0 in input_boxes and input_boxes[0].rect.collidepoint(mouse_pos):
                 current_condor = condor_hover_image or condor_image
+            elif 2 in input_boxes and input_boxes[2].rect.collidepoint(mouse_pos):
+                current_condor = condor3_image or condor_hover_image or condor_image
+            elif 3 in input_boxes and input_boxes[3].rect.collidepoint(mouse_pos):
+                current_condor = condor4_image or condor_hover_image or condor_image
             elif location_rect.collidepoint(mouse_pos):
                 current_condor = condor2_image or condor_hover_image or condor_image
             else:
