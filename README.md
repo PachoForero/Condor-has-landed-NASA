@@ -6,6 +6,16 @@ By configuring and calculating various **habitat module models** and **mission p
 
 ---
 
+Calculation of Required Area per Crew Member Based on Mission Crew Size
+
+<img width="431" height="91" alt="image" src="https://github.com/user-attachments/assets/5f7e1036-ec90-4404-97e1-c354085dfd8e" />
+
+Calculation of net volume Based on Crew Size
+
+<img width="283" height="57" alt="image" src="https://github.com/user-attachments/assets/5dcc68ef-55a9-4f16-a90b-465ddd3381ac" />
+
+
+
 ##  Available Volume Calculations for Each Launch Vehicle
 
 ###  Starship (SpaceX)
