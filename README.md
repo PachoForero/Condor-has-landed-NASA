@@ -1,6 +1,5 @@
 # Condor-has-landed-NASA
-Con esta herramienta se podran simular las diferentes configuraciones de habitats para misiones de asentamientos y colonización, partiendo de espacios comprendidos entre el sol y el cinturon de asteroides de la via lactea. 
-
+Con esta herramienta se podran simular las diferentes configuraciones de habitats para misiones de asentamientos y colonización, partiendo de espacios comprendidos entre el sol y el cinturon de asteroides del sistema solar
 A traves de la configuracion y el calculo de diferentes modelos de modulos y misiones de asentamiento y colonizacion, se puede simular el desarrollo de el habitat espacial dependiendo de los parametros y objetivos
 
 ## Calculos volumen disponible en cada cohete 
@@ -59,6 +58,8 @@ en costo total de la mision se pone un valor depnede del peso final
  Modulo A 
 
 si selecciona mas info debe decir las siguientes especificaciones:
+Capacidad 2 personas
+Volumen max (sin Dome deployment): 60.2m^3
 
 
 
